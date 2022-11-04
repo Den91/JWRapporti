@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, shrink-to-fit=no"
+    />
+    <link
+      href="../node_modules/bootstrap/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="../node_modules/bootstrap-icons/font/bootstrap-icons.css"
+    />
+    <script src="../node_modules/jquery/dist/jquery.min.js"></script>
+    <script src="../node_modules/chart.js/dist/chart.js"></script>
+    <title>JW Rapporti</title>
+    <script type="text/javascript" src="../include.js"></script>
+  </head>
+
+  <body>
+    <div class="position-relative" style="z-index: 11">
+      <div class="toast-container top-0 end-0 p-3"></div>
+    </div>
+
+    <div class="container-fluid pt-3">
+      <div class="row mb-3">
+        <div class="col-2">
+          <div class="form-floating mb-2">
+            <select
+              class="form-select"
+              name="selectAnno"
+              id="selectAnno"
+            ></select>
+            <label>Anno teocratico</label>
+          </div>
+          <div class="form-floating mb-2">
+            <select class="form-select" name="selectProc" id="selectProc">
+              <option></option>
+              <optgroup label="Attivi"></optgroup>
+              <optgroup label="Inattivi"></optgroup>
+              <optgroup label="Totali"></optgroup>
+            </select>
+            <label>Proclamatore</label>
+          </div>
+          <div class="d-grid">
+            <button
+              id="buttonSingola"
+              class="btn btn-sm btn-primary d-none mb-2"
+            >
+              <i class="bi bi-file-pdf-fill"></i> Stampa S-21
+            </button>
+            <button id="buttonTutte" class="btn btn-sm btn-primary d-none mb-2">
+              <i class="bi bi-file-pdf-fill"></i> Stampa tutti S-21
+            </button>
+          </div>
+        </div>
+        <div class="col d-none" id="div_cartolina">
+          <div class="card mb-3">
+            <div class="card-header">
+              <h5 class="text-center">
+                REGISTRAZIONE DEL PROCLAMATORE DI CONGREGAZIONE
+              </h5>
+              <div class="row mb-3">
+                <div class="col-8">
+                  Cognome e Nome: <b id="Nome"></b> <b id="Nome2"></b>
+                </div>
+                <div class="col-2">
+                  <b id="M"><i class="bi bi-circle"></i></b>
+                  Maschio
+                </div>
+                <div class="col-2">
+                  <b id="F"><i class="bi bi-circle"></i></b>
+                  Femmina
+                </div>
+              </div>
+
+              <div class="row mb-3">
+                <div class="col-8">Data di nascita: <b id="D_Nasc"></b></div>
+                <div class="col-2">
+                  <b id="U"><i class="bi bi-circle"></i></b>
+                  Unto
+                </div>
+                <div class="col-2">
+                  <b id="P"><i class="bi bi-circle"></i></b>
+                  Altre pecore
+                </div>
+              </div>
+
+              <div class="row">
+                <div class="col-6">Data di immersione: <b id="D_Batt"></b></div>
+                <div class="col-2">
+                  <b id="AN"><i class="bi bi-circle"></i></b>
+                  Anziano
+                </div>
+                <div class="col-2">
+                  <b id="SM"><i class="bi bi-circle"></i></b>
+                  Servitore di m.
+                </div>
+                <div class="col-2">
+                  <b id="PR"><i class="bi bi-circle"></i></b>
+                  Pioniere Regolare
+                </div>
+              </div>
+            </div>
+            <div class="card-body table-responsive p-0">
+              <table
+                class="table table-bordered table-sm mb-0"
+                id="tableCartolina"
+              >
+                <thead>
+                  <tr>
+                    <th style="text-align: center; width: 26%">Mese</th>
+                    <th style="text-align: center; width: 8%">Inc</th>
+                    <th style="text-align: center; width: 8%">Pubb</th>
+                    <th style="text-align: center; width: 8%">Video</th>
+                    <th style="text-align: center; width: 8%">Ore</th>
+                    <th style="text-align: center; width: 8%">Visite</th>
+                    <th style="text-align: center; width: 8%">Studi</th>
+                    <th style="text-align: left; width: 26%">Note</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td></td>
+                    <td class="text-center"></td>
+                    <td class="text-center"></td>
+                    <td class="text-center"></td>
+                    <td class="text-center"></td>
+                    <td class="text-center"></td>
+                    <td class="text-center"></td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td></td>
+                    <td class="text-center"></td>
+                    <td class="text-center"></td>
+                    <td class="text-center"></td>
+                    <td class="text-center"></td>
+                    <td class="text-center"></td>
+                    <td class="text-center"></td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td></td>
+                    <td class="text-center"></td>
+                    <td class="text-center"></td>
+                    <td class="text-center"></td>
+                    <td class="text-center"></td>
+                    <td class="text-center"></td>
+                    <td class="text-center"></td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td></td>
+                    <td class="text-center"></td>
+                    <td class="text-center"></td>
+                    <td class="text-center"></td>
+                    <td class="text-center"></td>
+                    <td class="text-center"></td>
+                    <td class="text-center"></td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td></td>
+                    <td class="text-center"></td>
+                    <td class="text-center"></td>
+                    <td class="text-center"></td>
+                    <td class="text-center"></td>
+                    <td class="text-center"></td>
+                    <td class="text-center"></td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td></td>
+                    <td class="text-center"></td>
+                    <td class="text-center"></td>
+                    <td class="text-center"></td>
+                    <td class="text-center"></td>
+                    <td class="text-center"></td>
+                    <td class="text-center"></td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td></td>
+                    <td class="text-center"></td>
+                    <td class="text-center"></td>
+                    <td class="text-center"></td>
+                    <td class="text-center"></td>
+                    <td class="text-center"></td>
+                    <td class="text-center"></td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td></td>
+                    <td class="text-center"></td>
+                    <td class="text-center"></td>
+                    <td class="text-center"></td>
+                    <td class="text-center"></td>
+                    <td class="text-center"></td>
+                    <td class="text-center"></td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td></td>
+                    <td class="text-center"></td>
+                    <td class="text-center"></td>
+                    <td class="text-center"></td>
+                    <td class="text-center"></td>
+                    <td class="text-center"></td>
+                    <td class="text-center"></td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td></td>
+                    <td class="text-center"></td>
+                    <td class="text-center"></td>
+                    <td class="text-center"></td>
+                    <td class="text-center"></td>
+                    <td class="text-center"></td>
+                    <td class="text-center"></td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td></td>
+                    <td class="text-center"></td>
+                    <td class="text-center"></td>
+                    <td class="text-center"></td>
+                    <td class="text-center"></td>
+                    <td class="text-center"></td>
+                    <td class="text-center"></td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td></td>
+                    <td class="text-center"></td>
+                    <td class="text-center"></td>
+                    <td class="text-center"></td>
+                    <td class="text-center"></td>
+                    <td class="text-center"></td>
+                    <td class="text-center"></td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <th>Totale</th>
+                    <th class="text-center"></th>
+                    <th class="text-center"></th>
+                    <th class="text-center"></th>
+                    <th class="text-center"></th>
+                    <th class="text-center"></th>
+                    <th class="text-center"></th>
+                    <th></th>
+                  </tr>
+                  <tr>
+                    <th>Media</th>
+                    <th class="text-center"></th>
+                    <th class="text-center"></th>
+                    <th class="text-center"></th>
+                    <th class="text-center"></th>
+                    <th class="text-center"></th>
+                    <th class="text-center"></th>
+                    <th></th>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="renderer.js"></script>
+    <!-- Option 1: Bootstrap Bundle with Popper -->
+    <script src="../node_modules/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+  </body>
+</html>

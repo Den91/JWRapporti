@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="it">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, shrink-to-fit=no"
+    />
+    <link
+      href="../node_modules/bootstrap/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="../node_modules/bootstrap-icons/font/bootstrap-icons.css"
+    />
+    <script src="../node_modules/jquery/dist/jquery.min.js"></script>
+    <script src="../node_modules/chart.js/dist/chart.js"></script>
+    <title>JW Rapporti</title>
+    <script type="text/javascript" src="../include.js"></script>
+    <style>
+      html,
+      body {
+        height: 100%;
+      }
+
+      body {
+        display: -ms-flexbox;
+        display: flex;
+        -ms-flex-align: center;
+        align-items: center;
+        padding-top: 40px;
+        padding-bottom: 40px;
+        background-color: #f5f5f5;
+      }
+
+      .form-signin {
+        width: 100%;
+        max-width: 330px;
+        padding: 15px;
+        margin: auto;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="position-static" style="z-index: 11">
+      <div class="toast-container top-0 end-0 p-3"></div>
+    </div>
+
+    <form class="form-signin d-flex flex-column" name="formLogin">
+      <h3 class="mb-3 fw-normal text-center">Benvenuto</h3>
+      <div class="form-floating mb-3">
+        <input
+          type="text"
+          name="utente"
+          id="utente"
+          class="form-control"
+          placeholder="Nome utente"
+          required
+          autofocus
+        />
+        <label for="utente">Nome utente</label>
+      </div>
+      <div class="form-floating mb-3">
+        <input
+          type="password"
+          name="password"
+          id="password"
+          class="form-control"
+          placeholder="Password"
+          required
+        />
+        <label for="password">Password</label>
+      </div>
+      <button class="btn btn-lg btn-primary btn-block mt-4" id="login">
+        Accedi
+      </button>
+    </form>
+
+    <script src="renderer.js"></script>
+    <!-- Option 1: Bootstrap Bundle with Popper -->
+    <script src="../node_modules/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+  </body>
+</html>

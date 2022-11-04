@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, shrink-to-fit=no"
+    />
+    <link
+      href="../node_modules/bootstrap/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="../node_modules/bootstrap-icons/font/bootstrap-icons.css"
+    />
+    <script src="../node_modules/jquery/dist/jquery.min.js"></script>
+    <script src="../node_modules/chart.js/dist/chart.js"></script>
+    <title>JW Rapporti</title>
+    <script type="text/javascript" src="../include.js"></script>
+  </head>
+
+  <body>
+    <div class="position-relative" style="z-index: 11">
+      <div class="toast-container top-0 end-0 p-3"></div>
+    </div>
+
+    <div class="container-fluid pt-3">
+      <div class="row mb-3">
+        <div class="col-5">
+          <div class="card h-100">
+            <div class="card-header d-flex">
+              <span class="me-auto my-auto">
+                Sorvegliante di circoscrizione
+              </span>
+              <button
+                type="button"
+                id="buttonCO"
+                class="btn btn-sm btn-success px-3"
+                onclick="modalCO()"
+              >
+                <i class="bi bi-person-plus-fill"></i>
+              </button>
+            </div>
+            <div class="card-body p-2 pt-0" id="DivCO"></div>
+          </div>
+        </div>
+        <div class="col">
+          <div class="card h-100">
+            <div class="card-header d-flex">
+              <span class="me-auto my-auto">Gruppi di servizio</span>
+              <button
+                type="button"
+                class="btn btn-sm btn-success px-3"
+                onclick="modalGruppo('')"
+              >
+                <i class="bi bi-person-plus-fill"></i>
+              </button>
+            </div>
+            <div class="card-body">
+              <div class="row gx-2" id="DivGruppi"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row mb-3">
+        <div class="col">
+          <div class="card">
+            <div class="card-header d-flex">
+              <span class="me-auto my-auto">Proclamatori</span>
+              <button
+                type="button"
+                class="btn btn-sm btn-primary me-2"
+                onclick="fpdf()"
+              >
+                <i class="bi bi-file-pdf-fill"></i> Stampa elenco
+              </button>
+              <button
+                type="button"
+                class="btn btn-sm btn-success px-3"
+                onclick="modalProclamatore(``)"
+              >
+                <i class="bi bi-person-plus-fill"></i>
+              </button>
+            </div>
+            <div class="card-body p-2 pt-0">
+              <div class="table-responsive">
+                <table class="table table-hover mb-0" id="tableAnagrafica">
+                  <thead>
+                    <tr>
+                      <th>Nome <span></span></th>
+                      <th>Età <span></span></th>
+                      <th>Cellulare <span></span></th>
+                      <th>E-mail <span></span></th>
+                      <th>Emergenza <span></span></th>
+                      <th>Gr <span></span></th>
+                      <th>Servizio <span></span></th>
+                    </tr>
+                  </thead>
+                  <tbody id="TBodyProc"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row mb-3">
+        <div class="col">
+          <div class="card">
+            <div class="card-header d-flex">
+              <span class="me-auto my-auto">Proclamatori eliminati</span>
+            </div>
+            <div class="card-body p-2 pt-0">
+              <div class="table-responsive">
+                <table class="table table-hover mb-0" id="tableEliminati">
+                  <thead>
+                    <tr>
+                      <th>Nome <span></span></th>
+                      <th>Età <span></span></th>
+                      <th>Cellulare <span></span></th>
+                      <th>E-mail <span></span></th>
+                      <th>Emergenza <span></span></th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- The Modal -->
+    <div class="modal fade" id="ModalProclamatore">
+      <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+          <!-- Modal Header -->
+          <div class="modal-header">
+            <h4 class="modal-title">Proclamatore</h4>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+
+          <!-- Modal body -->
+          <div class="modal-body">
+            <form method="post" id="FormProclamatore" class="mb-0">
+              <div class="row">
+                <div class="col-md-7 col-lg-4 mb-3 position-relative">
+                  <div class="form-floating">
+                    <input
+                      type="text"
+                      class="form-control"
+                      name="Nome"
+                      id="Nome"
+                    />
+                    <label class="" for="Nome">Cognome e Nome</label>
+                  </div>
+                  <div class="invalid-tooltip"></div>
+                </div>
+                <div class="col-md-5 col-lg-3 mb-3">
+                  <div class="form-floating">
+                    <input
+                      type="text"
+                      class="form-control"
+                      name="Nome2"
+                      id="Nome2"
+                    />
+                    <label class="" for="Nome2">Altro</label>
+                  </div>
+                </div>
+                <div class="col-md col-lg-5 mb-3">
+                  <div class="form-floating">
+                    <input
+                      type="text"
+                      class="form-control"
+                      name="Ind"
+                      id="Ind"
+                    />
+                    <label class="" for="Ind">Indirizzo</label>
+                  </div>
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-md-6 col-lg mb-3">
+                  <div class="form-floating">
+                    <input
+                      type="date"
+                      class="form-control"
+                      name="D_Nasc"
+                      id="D_Nasc"
+                    />
+                    <label class="" for="D_Nasc">Data Nascita</label>
+                  </div>
+                </div>
+                <div class="col-md-6 col-lg mb-3">
+                  <div class="form-floating">
+                    <input
+                      type="date"
+                      class="form-control"
+                      name="D_Batt"
+                      id="D_Batt"
+                    />
+                    <label class="" for="D_Batt">Data Battesimo</label>
+                  </div>
+                </div>
+                <div class="col-md-6 col-lg mb-3">
+                  <div class="form-floating">
+                    <input
+                      type="text"
+                      class="form-control"
+                      name="Tel"
+                      id="Tel"
+                    />
+                    <label class="" for="Tel">Telefono</label>
+                  </div>
+                </div>
+                <div class="col-md-6 col-lg mb-3">
+                  <div class="form-floating">
+                    <input
+                      type="text"
+                      class="form-control"
+                      name="Cel"
+                      id="Cel"
+                    />
+                    <label class="" for="Cel">Cellulare</label>
+                  </div>
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-md-12 col-lg-7 mb-3">
+                  <div class="form-floating">
+                    <input
+                      type="email"
+                      class="form-control"
+                      name="Email"
+                      id="Email"
+                    />
+                    <label class="" for="Email">Email</label>
+                  </div>
+                </div>
+                <div
+                  class="col-md col-lg-5 mb-3 d-flex align-items-center justify-content-between"
+                >
+                  <div class="mx-1">
+                    <div class="form-check">
+                      <input
+                        type="radio"
+                        class="form-check-input"
+                        id="M"
+                        value="M"
+                        name="S"
+                        required
+                      />
+                      <label class="form-check-label" for="M">Maschio</label>
+                    </div>
+                    <div class="form-check">
+                      <input
+                        type="radio"
+                        class="form-check-input"
+                        id="F"
+                        value="F"
+                        name="S"
+                        required
+                      />
+                      <label class="form-check-label" for="F">Femmina</label>
+                    </div>
+                  </div>
+                  <div class="mx-1">
+                    <div class="form-check">
+                      <input
+                        type="checkbox"
+                        class="form-check-input u-p"
+                        value="U"
+                        id="U"
+                        name="U"
+                      />
+                      <label class="form-check-label" for="U">Unto</label>
+                    </div>
+                    <div class="form-check">
+                      <input
+                        type="checkbox"
+                        class="form-check-input u-p"
+                        value="P"
+                        id="P"
+                        name="P"
+                      />
+                      <label class="form-check-label" for="P">A/P</label>
+                    </div>
+                  </div>
+                  <div class="mx-1">
+                    <div class="form-check">
+                      <input
+                        type="checkbox"
+                        class="form-check-input sm-an"
+                        value="SM"
+                        id="SM"
+                        name="SM"
+                      />
+                      <label class="form-check-label" for="SM">SM</label>
+                    </div>
+                    <div class="form-check">
+                      <input
+                        type="checkbox"
+                        class="form-check-input sm-an"
+                        value="AN"
+                        id="AN"
+                        name="AN"
+                      />
+                      <label class="form-check-label" for="AN">AN</label>
+                    </div>
+                  </div>
+                  <div class="mx-1">
+                    <div class="form-check">
+                      <input
+                        type="checkbox"
+                        class="form-check-input pr-ps"
+                        value="PR"
+                        id="PR"
+                        name="PR"
+                      />
+                      <label class="form-check-label" for="PR">PR</label>
+                    </div>
+                    <div class="form-check">
+                      <input
+                        type="checkbox"
+                        class="form-check-input pr-ps"
+                        value="PS"
+                        id="PS"
+                        name="PS"
+                      />
+                      <label class="form-check-label" for="PS">PS</label>
+                    </div>
+                  </div>
+                  <div class="mx-1">
+                    <div class="form-check">
+                      <input
+                        type="radio"
+                        class="form-check-input"
+                        id="A"
+                        value="1"
+                        name="Attivo"
+                        required
+                        checked
+                      />
+                      <label class="form-check-label" for="A">Attivo</label>
+                    </div>
+                    <div class="form-check">
+                      <input
+                        type="radio"
+                        class="form-check-input"
+                        id="I"
+                        value="0"
+                        name="Attivo"
+                        required
+                      />
+                      <label class="form-check-label" for="I">Inattivo</label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-lg mb-3 mb-lg-0">
+                  <div class="form-floating">
+                    <input
+                      type="text"
+                      class="form-control"
+                      name="Emerg"
+                      id="Emerg"
+                    />
+                    <label class="" for="Emerg">Contatto di emergenza</label>
+                  </div>
+                </div>
+                <div class="col-md col-lg-3">
+                  <div class="form-floating">
+                    <select name="Gr" class="form-select" id="Gr"></select>
+                    <label for="Gr">Gruppo</label>
+                  </div>
+                </div>
+              </div>
+              <input type="hidden" name="id" id="CP_Anag" value="" />
+            </form>
+          </div>
+          <!-- Modal footer -->
+          <div class="modal-footer" id="footModalProclamatore">
+            <button
+              class="btn btn-success order-2"
+              type="submit"
+              name="SalvaProclamatore"
+              form="FormProclamatore"
+              id="SalvaProclamatore"
+            >
+              Salva
+            </button>
+            <button
+              class="btn btn-danger d-none order-1"
+              id="EliminaProclamatore"
+            >
+              <i class="bi bi-trash3"></i>
+            </button>
+            <button
+              class="btn btn-info d-none order-1"
+              id="RipristinaProclamatore"
+            >
+              Ripristina
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal fade" id="ModalCO">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <!-- Modal Header -->
+          <div class="modal-header">
+            <h4 class="modal-title">Sorvegliante di circoscrizione</h4>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <!-- Modal body -->
+          <div class="modal-body">
+            <form method="post" id="FormCO" class="mb-0">
+              <div class="row">
+                <div class="col mb-3 mb-lg-0">
+                  <div class="form-floating">
+                    <input
+                      type="text"
+                      class="form-control"
+                      name="Nome_CO"
+                      id="Nome_CO"
+                    />
+                    <label class="" for="Nome_CO">Cognome e Nome</label>
+                  </div>
+                </div>
+                <div class="col mb-3 mb-lg-0">
+                  <div class="form-floating">
+                    <input
+                      type="text"
+                      class="form-control"
+                      name="Cel_CO"
+                      id="Cel_CO"
+                    />
+                    <label class="" for="Cel_CO">Cellulare</label>
+                  </div>
+                </div>
+                <div class="col">
+                  <div class="form-floating">
+                    <input
+                      type="email"
+                      class="form-control"
+                      name="Email_CO"
+                      id="Email_CO"
+                    />
+                    <label class="" for="Email_CO">Email</label>
+                  </div>
+                </div>
+                <input type="hidden" id="CP_CO" name="CP_CO" value="0" />
+              </div>
+            </form>
+          </div>
+          <!-- Modal footer -->
+          <div class="modal-footer" id="footModalCO">
+            <button
+              class="btn btn-success order-2"
+              type="submit"
+              name="SalvaCO"
+              form="FormCo"
+              id="SalvaCO"
+            >
+              Salva
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal fade" id="ModalGruppo">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <!-- Modal Header -->
+          <div class="modal-header">
+            <h4 class="modal-title">Gruppo</h4>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <!-- Modal body -->
+          <div class="modal-body">
+            <form method="post" id="FormGruppo" class="mb-0">
+              <div class="row">
+                <div class="col-md-3 mb-3 mb-lg-0">
+                  <div class="form-floating">
+                    <input
+                      type="number"
+                      class="form-control"
+                      name="Num"
+                      id="Num"
+                      value=""
+                      min="1"
+                    />
+                    <label class="" for="Num">N. Gruppo</label>
+                    <div class="invalid-tooltip"></div>
+                  </div>
+                </div>
+                <div class="col-md-9">
+                  <div class="form-floating">
+                    <input
+                      type="text"
+                      class="form-control"
+                      name="Sorv_Gr"
+                      id="Sorv_Gr"
+                      value=""
+                    />
+                    <label for="Sorv_Gr">Sorvegliante gruppo</label>
+                    <div class="invalid-tooltip"></div>
+                  </div>
+                </div>
+              </div>
+              <input type="hidden" id="CP_Gruppo" name="id" value="" />
+            </form>
+          </div>
+          <!-- Modal footer -->
+          <div class="modal-footer" id="footModalGruppo">
+            <button
+              class="btn btn-success order-2"
+              type="submit"
+              name="SalvaGruppo"
+              form="FormGruppo"
+              id="SalvaGruppo"
+            >
+              Salva
+            </button>
+            <button class="btn btn-danger d-none order-1" id="EliminaGruppo">
+              <i class="bi bi-trash3"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="renderer.js"></script>
+    <!-- Option 1: Bootstrap Bundle with Popper -->
+    <script src="../node_modules/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+  </body>
+</html>

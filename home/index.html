@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, shrink-to-fit=no"
+    />
+    <link
+      href="../node_modules/bootstrap/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="../node_modules/bootstrap-icons/font/bootstrap-icons.css"
+    />
+    <script src="../node_modules/jquery/dist/jquery.min.js"></script>
+    <script src="../node_modules/chart.js/dist/chart.js"></script>
+    <title>JW Rapporti</title>
+    <script type="text/javascript" src="../include.js"></script>
+    <style>
+      .grid-container {
+        display: grid;
+        grid-template-columns: auto auto auto auto auto auto auto;
+        height: 100%;
+        font-size: small;
+      }
+
+      .grid-item {
+        position: relative;
+        text-align: center;
+        border: 1px solid #dee2e6;
+      }
+
+      .center-div {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) !important;
+      }
+
+      .today {
+        position: absolute;
+        height: 110%;
+        width: 170%;
+        background-color: red;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) !important;
+        z-index: -1;
+        border-radius: 50%;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="container-fluid pt-3">
+      <div class="row">
+        <div class="col" id="alert">
+          <div class="alert alert-info d-none" id="unAnnoBattezzati">
+            <h4 class="alert-heading me-auto mb-0">Un anno di battesimo</h4>
+            <div class="row pt-1" id="elencoBattezzati"></div>
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col">
+          <div
+            id="divRapportiMancanti"
+            class="alert alert-warning d-none"
+            role="alert"
+          >
+            <div class="d-flex">
+              <h4 class="alert-heading me-auto mb-0">Rapporti mancanti</h4>
+              <button
+                class="btn py-0"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#collapseElenco"
+              >
+                <i class="bi bi-caret-down-fill alert-warning"></i>
+              </button>
+            </div>
+            <div id="collapseElenco" class="collapse">
+              <div id="divElenco" class="row pt-1"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="row row-cols-3 g-3">
+        <!--
+            <div class="col">
+                <div id="calendario" class="card h-100">
+                    <div class="grid-container">
+                    </div>
+                </div>
+            </div>
+            -->
+        <div class="col">
+          <div class="card">
+            <div class="chart-container" style="position: relative">
+              <canvas id="canvas0"></canvas>
+            </div>
+          </div>
+        </div>
+        <div class="col">
+          <div class="card">
+            <div class="chart-container" style="position: relative">
+              <canvas id="canvas2"></canvas>
+            </div>
+          </div>
+        </div>
+        <div class="col">
+          <div class="card">
+            <div class="chart-container" style="position: relative">
+              <canvas id="canvas3"></canvas>
+            </div>
+          </div>
+        </div>
+        <div class="col">
+          <div class="card">
+            <div class="chart-container" style="position: relative">
+              <canvas id="canvas4"></canvas>
+            </div>
+          </div>
+        </div>
+        <div class="col">
+          <div class="card">
+            <div class="chart-container" style="position: relative">
+              <canvas id="canvas1"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="renderer.js"></script>
+    <!-- Option 1: Bootstrap Bundle with Popper -->
+    <script src="../node_modules/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+  </body>
+</html>

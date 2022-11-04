@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, shrink-to-fit=no"
+    />
+    <link
+      href="../node_modules/bootstrap/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="../node_modules/bootstrap-icons/font/bootstrap-icons.css"
+    />
+    <script src="../node_modules/jquery/dist/jquery.min.js"></script>
+    <script src="../node_modules/chart.js/dist/chart.js"></script>
+    <title>JW Rapporti</title>
+    <script type="text/javascript" src="../include.js"></script>
+  </head>
+
+  <body>
+    <div class="position-relative" style="z-index: 11">
+      <div class="toast-container top-0 end-0 p-3"></div>
+    </div>
+
+    <div class="container-fluid pt-3">
+      <div class="row mb-3">
+        <div class="col-2">
+          <div class="form-floating mb-2">
+            <input
+              type="month"
+              class="form-control"
+              name="mese"
+              id="mese"
+              value=""
+            />
+            <label>Mese</label>
+          </div>
+          <div class="d-grid">
+            <button id="buttonPDF" class="btn btn-sm btn-primary d-none mb-2">
+              <i class="bi bi-file-pdf-fill"></i> Stampa rapporti
+            </button>
+          </div>
+        </div>
+        <div class="col">
+          <div class="card">
+            <div class="card-header d-flex">
+              <span class="me-auto my-auto">Rapporti</span>
+              <button
+                type="button"
+                class="btn btn-sm btn-success"
+                onclick="modalRapporti()"
+              >
+                <i class="bi bi-pencil-square"></i> Compila
+              </button>
+            </div>
+            <div class="card-body p-2 pt-0">
+              <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                  <thead>
+                    <tr>
+                      <th>Nome <span></span></th>
+                      <th class="text-center">Inc. <span></span></th>
+                      <th class="text-center">Pubb. <span></span></th>
+                      <th class="text-center">Video <span></span></th>
+                      <th class="text-center">Ore <span></span></th>
+                      <th class="text-center">Visite <span></span></th>
+                      <th class="text-center">Studi <span></span></th>
+                      <th>Note <span></span></th>
+                    </tr>
+                  </thead>
+                  <tbody id="TBodyRapporti"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal fade" id="ModalRapporti">
+      <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+          <!-- Modal Header -->
+          <div class="modal-header">
+            <h4 class="modal-title" id="ModalRapportiTitle">Rapporti</h4>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+
+          <!-- Modal body -->
+          <div class="modal-body">
+            <form method="post" id="FormRapporti" class="mb-0"></form>
+          </div>
+          <!-- Modal footer -->
+          <div class="modal-footer" id="footModalGruppo">
+            <button
+              class="btn btn-success order-2"
+              type="submit"
+              id="SalvaRapporti"
+              form="FormRapporti"
+            >
+              Salva
+            </button>
+            <button class="btn btn-danger d-none order-1" id="EliminaRapporti">
+              <i class="bi bi-trash3"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="renderer.js"></script>
+    <!-- Option 1: Bootstrap Bundle with Popper -->
+    <script src="../node_modules/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+  </body>
+</html>

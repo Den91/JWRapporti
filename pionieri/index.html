@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, shrink-to-fit=no"
+    />
+    <link
+      href="../node_modules/bootstrap/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="../node_modules/bootstrap-icons/font/bootstrap-icons.css"
+    />
+    <script src="../node_modules/jquery/dist/jquery.min.js"></script>
+    <script src="../node_modules/chart.js/dist/chart.js"></script>
+    <title>JW Rapporti</title>
+    <script type="text/javascript" src="../include.js"></script>
+  </head>
+
+  <body>
+    <div class="position-relative" style="z-index: 11">
+      <div class="toast-container top-0 end-0 p-3"></div>
+    </div>
+
+    <div class="container-fluid pt-3">
+      <div class="row mb-3">
+        <div class="col-2">
+          <div class="form-floating mb-2">
+            <select
+              class="form-select"
+              name="selectAnno"
+              id="selectAnno"
+            ></select>
+            <label>Anno teocratico</label>
+          </div>
+        </div>
+        <div class="col">
+          <div class="card d-none" id="CardPionieri">
+            <div class="card-header d-flex">
+              <span class="me-auto my-auto">Pionieri</span>
+            </div>
+            <div class="card-body py-0">
+              <table class="table mb-0" id="TablePionieri">
+                <thead>
+                  <tr></tr>
+                </thead>
+                <tbody></tbody>
+                <tfoot></tfoot>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="renderer.js"></script>
+    <!-- Option 1: Bootstrap Bundle with Popper -->
+    <script src="../node_modules/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+  </body>
+</html>
