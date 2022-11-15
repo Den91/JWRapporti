@@ -79,7 +79,7 @@ $('#FormCO').submit(async function (e) {
                 'Nome_CO': $("#Nome_CO").val(),
                 'Cel_CO': $("#Cel_CO").val(),
                 'Email_CO': $("#Email_CO").val(),
-                'CP_CO': '0'
+                'CP_CO': 0
             }
         )
     } else {
@@ -90,7 +90,7 @@ $('#FormCO').submit(async function (e) {
                 'Cel_CO': $("#Cel_CO").val(),
                 'Email_CO': $("#Email_CO").val(),
             },
-            { 'CP_CO': '0' }
+            { 'CP_CO': 0 }
         )
     }
     if (result.succ)

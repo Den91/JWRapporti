@@ -12,6 +12,12 @@ $("#upload").click(async function () {
     mostraNotifiche()
 })
 
+$("#import").click(async function () {
+    result = await window.electronAPI.importFile()
+    notifichePush(result)
+    mostraNotifiche()
+})
+
 $("#backup").click(async function () {
     result = await window.electronAPI.backupFile()
     notifichePush(result)

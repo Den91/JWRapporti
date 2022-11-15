@@ -54,14 +54,14 @@ function htmlPresenti(presenti) {
         totF = cF = 0
         console.log(presenti[0])
         keysI.forEach(function (key, indice) {
-            if (presenti[0][key] != '') {
+            if (presenti[0][key] != null) {
                 $(`#TablePresenti tbody tr:eq(0) td:eq(${indice + 1})`).html(presenti[0][key])
                 totI += Number(presenti[0][key])
                 cI++
             }
         })
         keysF.forEach(function (key, indice) {
-            if (presenti[0][key] != '') {
+            if (presenti[0][key] != null) {
                 $(`#TablePresenti tbody tr:eq(1) td:eq(${indice + 1})`).html(presenti[0][key])
                 totF += Number(presenti[0][key])
                 cF++
@@ -104,16 +104,16 @@ $('#SalvaPresenti').click(async function () {
                 'presenti',
                 {
                     'Mese': $('[name="mese"]').val(),
-                    'i1': $(`#i1`).val(),
-                    'i2': $(`#i2`).val(),
-                    'i3': $(`#i3`).val(),
-                    'i4': $(`#i4`).val(),
-                    'i5': $(`#i5`).val(),
-                    'f1': $(`#f1`).val(),
-                    'f2': $(`#f2`).val(),
-                    'f3': $(`#f3`).val(),
-                    'f4': $(`#f4`).val(),
-                    'f5': $(`#f5`).val(),
+                    'i1': $(`#i1`).val() == '' ? null : $(`#i1`).val(),
+                    'i2': $(`#i2`).val() == '' ? null : $(`#i2`).val(),
+                    'i3': $(`#i3`).val() == '' ? null : $(`#i3`).val(),
+                    'i4': $(`#i4`).val() == '' ? null : $(`#i4`).val(),
+                    'i5': $(`#i5`).val() == '' ? null : $(`#i5`).val(),
+                    'f1': $(`#f1`).val() == '' ? null : $(`#f1`).val(),
+                    'f2': $(`#f2`).val() == '' ? null : $(`#f2`).val(),
+                    'f3': $(`#f3`).val() == '' ? null : $(`#f3`).val(),
+                    'f4': $(`#f4`).val() == '' ? null : $(`#f4`).val(),
+                    'f5': $(`#f5`).val() == '' ? null : $(`#f5`).val(),
                 },
                 { 'id': presenti[0].id }
             )

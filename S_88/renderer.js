@@ -61,28 +61,28 @@ async function visualS88() {
             if (presenti.length != 0) {
                 totI = cI = 0
                 totF = cF = 0
-                keysI.forEach(function (key, indice) {
-                    if (presenti[0][key] != '') {
+                for (key of keysI) {
+                    if (presenti[0][key] != null) {
                         totI += Number(presenti[0][key])
                         cI++
                     }
-                })
+                }
                 if (cI > 0) {
                     contaI++
-                    sommaI += totI
+                    sommaI += Number(totI / cI)
                 }
                 $(`table:eq(0) tbody tr:eq(${x}) td:eq(${1})`).html(cI)
                 $(`table:eq(0) tbody tr:eq(${x}) td:eq(${2})`).html(totI)
                 $(`table:eq(0) tbody tr:eq(${x}) td:eq(${3})`).html(Number(totI / cI).toFixed(0))
-                keysF.forEach(function (key, indice) {
-                    if (presenti[0][key] != '') {
+                for (key of keysF) {
+                    if (presenti[0][key] != null) {
                         totF += Number(presenti[0][key])
                         cF++
                     }
-                })
+                }
                 if (cF > 0) {
                     contaF++
-                    sommaF += totF
+                    sommaF += Number(totF / cF)
                 }
                 $(`table:eq(1) tbody tr:eq(${x}) td:eq(${1})`).html(cF)
                 $(`table:eq(1) tbody tr:eq(${x}) td:eq(${2})`).html(totF)

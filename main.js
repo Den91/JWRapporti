@@ -31,6 +31,7 @@ app.whenReady().then(() => {
     //console.log(process.versions.node)
     ipcMain.handle('login', login)
     ipcMain.handle('importaFile', importaFile)
+    ipcMain.handle('importFile', importFile)
     ipcMain.handle('backupFile', backupFile)
     ipcMain.handle('getAll', getAll)
     ipcMain.handle('getRows', getRows)
@@ -51,9 +52,16 @@ app.whenReady().then(() => {
         },
     })
     win.maximize();
-    win.loadFile('./home/index.html')
-    //win.loadFile('./login/index.html')
+    //win.loadFile('./home/index.html')
+    win.loadFile('./login/index.html')
 })
+
+function login(event, username, password) {
+    if (username.toUpperCase() == "SEGRETARIO" && password == "Rapporti1914")
+        return true
+    else
+        return false
+}
 
 async function fpdfAnagrafica() {
     const { canceled, filePaths } = await dialog.showOpenDialog({ properties: ['openDirectory'] })
@@ -336,9 +344,9 @@ async function cartolinaFPDF(pdf, anno, proc, link_pdf) {
             nome += ' (' + proc["Nome2"] + ')';
         }
         pdf.Cell(130, 8, unescapeHtml(nome), 0, 0, 'L');
-
+        let check
         if (proc["S"] == "M") {
-            let check = "4";
+            check = "4";
         } else {
             check = "";
         }
@@ -371,7 +379,8 @@ async function cartolinaFPDF(pdf, anno, proc, link_pdf) {
         pdf.Ln(8);
 
         var D_Nasc = new Date(proc["D_Nasc"]);
-        pdf.Cell(130, 8, "Data nascita: " + D_Nasc.toLocaleDateString(), 0, 0, 'L');
+        pdf.Cell(130, 8, "Data nascita: " +
+            D_Nasc.toLocaleString("it-IT", { day: "2-digit", month: '2-digit', year: 'numeric' }), 0, 0, 'L');
 
         if (proc["U_AP"] == "U") {
             check = "4";
@@ -407,7 +416,8 @@ async function cartolinaFPDF(pdf, anno, proc, link_pdf) {
         pdf.Ln(8);
 
         var D_Batt = new Date(proc["D_Batt"]);
-        pdf.Cell(85, 8, "Data di immersione: " + D_Batt.toLocaleDateString(), 0, 0, 'L');
+        pdf.Cell(85, 8, "Data di immersione: " +
+            D_Batt.toLocaleString("it-IT", { day: "2-digit", month: '2-digit', year: 'numeric' }), 0, 0, 'L');
 
         if (proc["SM_AN"] == "AN") {
             check = "4";
@@ -750,14 +760,14 @@ async function fpdfS88(event, anno) {
             totI = cI = 0
             totF = cF = 0
             for (key of keysI) {
-                if (presenti[0][key] != '') {
+                if (presenti[0][key] != null) {
                     totI += Number(presenti[0][key])
                     cI++
                 }
             }
             if (cI > 0) {
                 contaI++
-                sommaI += totI
+                sommaI += Number(totI / cI)
             }
             pdf.Cell(32, 8, new Date(mesi[x]).toLocaleString('it-IT', {
                 year: 'numeric',
@@ -769,14 +779,14 @@ async function fpdfS88(event, anno) {
             pdf.Cell(8, 8, "", 0, 0, 'C');
 
             for (key of keysF) {
-                if (presenti[0][key] != '') {
+                if (presenti[0][key] != null) {
                     totF += Number(presenti[0][key])
                     cF++
                 }
             }
             if (cF > 0) {
                 contaF++
-                sommaF += totF
+                sommaF += Number(totF / cF)
             }
             pdf.Cell(32, 8, new Date(mesi[x]).toLocaleString('it-IT', {
                 year: 'numeric',
@@ -817,7 +827,7 @@ async function importaFile() {
             for (tabella of tabelle) {
                 db.clearTable(tabella, (succ, msg) => {
                     if (!succ) {
-                        throw msg
+                        throw [msg, 1]
                     }
                 })
             }
@@ -826,7 +836,7 @@ async function importaFile() {
             for (item of tables.gruppi) {
                 let result = await insertTableContent(null, 'gruppi', item)
                 if (!result.succ) {
-                    throw result.msg
+                    throw [result.msg, 2]
                 }
             }
             //anagrafica
@@ -837,7 +847,7 @@ async function importaFile() {
                 }
                 result = await insertTableContent(null, 'anagrafica', item)
                 if (!result.succ) {
-                    throw result.msg
+                    throw [result.msg, 3]
                 }
             }
             //rapporti
@@ -852,16 +862,16 @@ async function importaFile() {
                     item['Studi'] = Number(item['Studi']) == 0 ? null : Number(item['Studi'])
                     result = await insertTableContent(null, 'rapporti', item)
                     if (!result.succ) {
-                        throw result.msg
+                        throw [result.msg, 4]
                     }
                 }
             }
             //sorvegliante
             sorv = tables.sorvegliante[0]
-            delete sorv.CP_CO
+            sorv.CP_CO = 0
             result = await insertTableContent(null, 'sorvegliante', sorv)
             if (!result.succ) {
-                throw result.msg
+                throw [result.msg, 5]
             }
             //presenti
             for (item of tables.presenti) {
@@ -882,7 +892,7 @@ async function importaFile() {
                     }
                     result = await insertTableContent(null, 'presenti', array)
                     if (!result.succ) {
-                        throw result.msg
+                        throw [result.msg, 6]
                     }
                 }
                 result = await updateRow(
@@ -891,10 +901,11 @@ async function importaFile() {
                     { [`${item.Adun}${item.Settimana}`]: Number(item.Presenti) },
                     { 'Mese': item.Mese, })
                 if (!result.succ)
-                    throw result.msg
+                    throw [result.msg, 7]
             }
         }
         catch (e) {
+            /*
             for (tabella of tabelle) {
                 fs.unlink(path.join(userData, tabella + '.json'), function (err) {
                     if (err) return console.log(err);
@@ -904,7 +915,11 @@ async function importaFile() {
                     if (err) console.log('ERROR: ' + err);
                 });
             }
-            return { succ: false, msg: `Impossibile importare dati. Operazione annullata` }
+            */
+            return {
+                succ: false, msg: `Impossibile importare dati. <br> 
+                    Operazione annullata. <br> Errore${e[1]}: ${e[0]}`
+            }
         }
 
         //controllo sulle chiavi primarie
@@ -938,6 +953,46 @@ async function importaFile() {
     }
 }
 
+async function importFile() {
+    const { canceled, filePaths } = await dialog.showOpenDialog()
+    if (canceled) {
+        return
+    } else {
+        for (tabella of tabelle) {
+            fs.copyFile(path.join(userData, tabella + '.json'), path.join(userData, tabella + '.tmp'), (err) => {
+                if (err) throw err;
+            })
+        }
+        let dati = JSON.parse(fs.readFileSync(filePaths[0]))
+        try {
+            for (tabella of tabelle) {
+                console.log(dati[tabella])
+                fs.writeFileSync(path.join(userData, tabella + '.json'),
+                    JSON.stringify({ [tabella]: dati[tabella] }, null, 2), (err) => {
+                        throw err;
+                    })
+            }
+            for (tabella of tabelle) {
+                fs.unlink(path.join(userData, tabella + '.tmp'), function (err) {
+                    if (err) return console.log(err);
+                })
+            }
+            return { succ: true, msg: 'Dati importati con successo' }
+        } catch (err) {
+            for (tabella of tabelle) {
+                fs.unlink(path.join(userData, tabella + '.json'), function (err) {
+                    if (err) return console.log(err);
+                    console.log('file deleted successfully');
+                })
+                fs.rename(path.join(userData, tabella + '.tmp'), path.join(userData, tabella + '.json'), function (err) {
+                    if (err) console.log('ERROR: ' + err);
+                });
+            }
+            return { succ: false, msg: err }
+        }
+    }
+}
+
 async function backupFile() {
     const { canceled, filePaths } = await dialog.showOpenDialog({ properties: ['openDirectory'] })
     if (canceled) {
@@ -945,7 +1000,6 @@ async function backupFile() {
     } else {
         let backup = {}
         for (tabella of tabelle) {
-
             backup[tabella] = JSON.parse(fs.readFileSync(path.join(userData, tabella + '.json')))[tabella]
         }
         try {
@@ -959,13 +1013,6 @@ async function backupFile() {
             return { succ: false, msg: err }
         }
     }
-}
-
-function login(event, username, password) {
-    if (username.toUpperCase() == "SEGRETARIO" && password == "Rapporti1914")
-        return true
-    else
-        return false
 }
 
 function creaTabelle() {
