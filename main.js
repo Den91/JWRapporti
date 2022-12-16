@@ -1,15 +1,10 @@
-const { app, BrowserWindow, ipcMain, dialog, autoUpdater } = require('electron')
+const { app, BrowserWindow, ipcMain, dialog } = require('electron')
 const path = require('path')
 const fs = require('fs')
 const os = require('os')
 const db = require("electron-db")
 const tabelle = ['anagrafica', 'gruppi', 'rapporti', 'presenti', 'sorvegliante']
 const FPDF = require('node-fpdf')
-
-const server = `vercel.com/den91/jwrapporti`
-const url = `${server}/update/${process.platform}/${app.getVersion()}`
-
-autoUpdater.setFeedURL({ url })
 
 var pack = null
 try {
@@ -59,6 +54,7 @@ app.whenReady().then(() => {
     win.maximize();
     //win.loadFile('./home/index.html')
     win.loadFile('./login/index.html')
+    win.setTitle("JW Rapporti " + pack.version);
 })
 
 function login(event, username, password) {
