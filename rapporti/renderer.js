@@ -213,8 +213,8 @@ function htmlRapporto(proclamatore, rapporto) {
                     type="text"
                     class="form-control"
                     name="Note[]"
-                    id="Note-${proclamatore.id}" v
-                    alue="${rapporto ? rapporto.Note || "" : ""}"
+                    id="Note-${proclamatore.id}"
+                    value="${rapporto ? rapporto.Note : ""}"
                     onchange="convalida(this)"
                 >
                 <label for="Note">Note</label>
@@ -223,7 +223,6 @@ function htmlRapporto(proclamatore, rapporto) {
     </div>`
 }
 
-//$('#FormRapporti').submit(async function (e) {
 $('#SalvaRapporti').click(async function () {
     $("[name='CP_Anag']").each(async function (indice, CP_Anag) {
         CP_Anag = $(CP_Anag).val()

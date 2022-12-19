@@ -2,7 +2,6 @@ const { contextBridge, ipcRenderer } = require('electron')
 
 contextBridge.exposeInMainWorld('electronAPI', {
     login: (username, password) => ipcRenderer.invoke('login', username, password),
-    importaFile: () => ipcRenderer.invoke('importaFile'),
     importFile: () => ipcRenderer.invoke('importFile'),
     backupFile: () => ipcRenderer.invoke('backupFile'),
     getAll: (table) => ipcRenderer.invoke('getAll', table),

@@ -30,7 +30,6 @@ app.whenReady().then(() => {
     creaTabelle()
     //console.log(process.versions.node)
     ipcMain.handle('login', login)
-    ipcMain.handle('importaFile', importaFile)
     ipcMain.handle('importFile', importFile)
     ipcMain.handle('backupFile', backupFile)
     ipcMain.handle('getAll', getAll)
@@ -69,7 +68,7 @@ async function fpdfAnagrafica() {
     if (canceled) {
         return
     } else {
-        const pdf = new FPDF('P', 'mm', 'A4');
+        const pdf = new FPDF('P', 'mm', 'A5');
         pdf.SetFont('Arial', '', 10);
         pdf.SetTextColor(0, 0, 0);
         pdf.SetAutoPageBreak(1, 3);
@@ -549,7 +548,7 @@ async function fpdfS21Singola(event, anno, proc) {
     if (canceled) {
         return
     } else {
-        const pdf = new FPDF('P', 'mm', 'A4');
+        const pdf = new FPDF('P', 'mm', 'A5');
         pdf.SetFont('Arial', '', 10);
         pdf.SetTextColor(0, 0, 0);
         pdf.SetAutoPageBreak(1, 3);
