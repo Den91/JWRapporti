@@ -52,7 +52,7 @@ async function visualPionieri() {
         })
         $('#TablePionieri thead tr').append(`<th class="text-center">Totale</th>`)
         $('#TablePionieri thead tr').append(`<th class="text-center">Media</th>`)
-        pionieri = await window.electronAPI.getRows('anagrafica', { 'PR_PS': 'PR' })
+        pionieri = await window.electronAPI.getRows('anagrafica', { 'PR_PS': 'PR', 'Elimina': '0' })
         for (pioniere of pionieri) {
             $('#TablePionieri tbody').append(`
                 <tr id=${pioniere.id}>
