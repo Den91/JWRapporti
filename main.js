@@ -26,6 +26,8 @@ if (platform === 'win32') {
     userData = path.join('var', 'local', appName);
 }
 
+const { autoUpdater } = require('electron-updater');
+
 app.whenReady().then(() => {
     creaTabelle()
     //console.log(process.versions.node)
@@ -54,7 +56,19 @@ app.whenReady().then(() => {
     //win.loadFile('./home/index.html')
     win.loadFile('./login/index.html')
     win.setTitle("JW Rapporti " + pack.version);
+    win.once('ready-to-show', () => {
+        autoUpdater.checkForUpdatesAndNotify();
+    });
+    /*
+    autoUpdater.on('update-available', () => {
+        win.webContents.send('update_available');
+    });
+    autoUpdater.on('update-downloaded', () => {
+        win.webContents.send('update_downloaded');
+    });
+    */
 })
+
 
 function login(event, username, password) {
     if (username.toUpperCase() == "SEGRETARIO" && password == "Rapporti1914")

@@ -1,8 +1,9 @@
 v 1.0.0
-
 - Release iniziale
 
 v 1.0.1
-
 - S-88: sistemata media dei presenti annuale
 - Dati: importa dati da backup
+
+v 1.0.5
+- bug fix
