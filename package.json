@@ -5,7 +5,9 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "increment-version": "versiony package.json --patch && git add . && git commit -m 'new version' && git push"
+    "increment-version": "versiony package.json --patch && git add . && git commit -m 'new version' && git push",
+    "build": "electron-builder build --mac --win --publish never",
+    "deploy": "electron-builder build --win --publish always"
   },
   "author": "Sita Dennis",
   "license": "ISC",
@@ -25,11 +27,22 @@
     "jquery": "^3.6.1",
     "node-fpdf": "^1.0.41"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Den91/JWRapporti.git"
+  },
   "build": {
     "appId": "com.jwrapporti",
     "directories": {
       "buildResources": "build"
     },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "Den91",
+        "repo": "JWRapporti"
+      }
+    ],
     "mac": {
       "target": "dmg"
     },

@@ -6,4 +6,6 @@ v 1.0.1
 - Dati: importa dati da backup
 
 v 1.0.5
-- bug fix
+- bug fix persi
+- PDF: mostrato "Invalid date"
+- impostato autoupdate per windows

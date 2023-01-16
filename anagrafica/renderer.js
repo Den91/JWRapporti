@@ -332,7 +332,7 @@ $('#FormProclamatore').submit(async function (e) {
                 'SM_AN': ($('#SM:checked').val() ?? '') + ($('#AN:checked').val() ?? ''),
                 'PR_PS': ($('#PR:checked').val() ?? '') + ($('#PS:checked').val() ?? ''),
                 'Attivo': $('input[name=Attivo]:checked').val(),
-                'Gr': $('#Gr').find(":selected").val(),
+                'Gr': Number($('#Gr').find(":selected").val()),
                 'Elimina': "0",
             }
         )
@@ -356,7 +356,7 @@ $('#FormProclamatore').submit(async function (e) {
                 'SM_AN': ($('#SM:checked').val() ?? '') + ($('#AN:checked').val() ?? ''),
                 'PR_PS': ($('#PR:checked').val() ?? '') + ($('#PS:checked').val() ?? ''),
                 'Attivo': $('input[name=Attivo]:checked').val(),
-                'Gr': $('#Gr').find(":selected").val(),
+                'Gr': Number($('#Gr').find(":selected").val()),
             },
             { 'id': parseInt($('#CP_Anag').val()) }
         )

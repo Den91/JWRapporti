@@ -5,6 +5,7 @@ const os = require('os')
 const db = require("electron-db")
 const tabelle = ['anagrafica', 'gruppi', 'rapporti', 'presenti', 'sorvegliante']
 const FPDF = require('node-fpdf')
+const { autoUpdater } = require('electron-updater');
 
 var pack = null
 try {
@@ -25,8 +26,6 @@ if (platform === 'win32') {
 } else {
     userData = path.join('var', 'local', appName);
 }
-
-const { autoUpdater } = require('electron-updater');
 
 app.whenReady().then(() => {
     creaTabelle()
@@ -59,14 +58,15 @@ app.whenReady().then(() => {
     win.once('ready-to-show', () => {
         autoUpdater.checkForUpdatesAndNotify();
     });
-    /*
     autoUpdater.on('update-available', () => {
         win.webContents.send('update_available');
     });
     autoUpdater.on('update-downloaded', () => {
         win.webContents.send('update_downloaded');
     });
-    */
+    ipcMain.on('restart_app', () => {
+        autoUpdater.quitAndInstall();
+    });
 })
 
 
@@ -82,7 +82,7 @@ async function fpdfAnagrafica() {
     if (canceled) {
         return
     } else {
-        const pdf = new FPDF('P', 'mm', 'A5');
+        const pdf = new FPDF('P', 'mm', 'A4');
         pdf.SetFont('Arial', '', 10);
         pdf.SetTextColor(0, 0, 0);
         pdf.SetAutoPageBreak(1, 3);
@@ -141,14 +141,22 @@ async function fpdfAnagrafica() {
                     nome += ' (' + proc["Nome2"] + ')';
                 }
                 pdf.Cell(c2, row * 3, unescapeHtml(nome), border, 0, 'L', true);
-                var D_Nasc = new Date(proc["D_Nasc"]);
-                pdf.Cell(c3, row, "Data nascita: " + D_Nasc.toLocaleDateString(), border, 0, 'L', true);
+                if (proc["D_Nasc"] != "") {
+                    var D_Nasc = new Date(proc["D_Nasc"]);
+                    pdf.Cell(c3, row, "Data nascita: " + D_Nasc.toLocaleDateString(), border, 0, 'L', true);
+                } else {
+                    pdf.Cell(c3, row, "Data nascita:", border, 0, 'L', true);
+                }
                 x = pdf.GetX();
                 y = pdf.GetY();
                 pdf.Ln(row);
                 pdf.Cell(c1 + c2, row, "", 0, 0, 'L', false);
-                var D_Batt = new Date(proc["D_Batt"]);
-                pdf.Cell(c3, row, "Data battesimo: " + D_Batt.toLocaleDateString(), border, 0, 'L', true);
+                if (proc["D_Batt"] != "") {
+                    var D_Batt = new Date(proc["D_Batt"]);
+                    pdf.Cell(c3, row, "Data battesimo: " + D_Batt.toLocaleDateString(), border, 0, 'L', true);
+                } else {
+                    pdf.Cell(c3, row, "Data battesimo:", border, 0, 'L', true);
+                }
                 pdf.SetXY(x, y);
 
                 pdf.Cell(c4, row, "Cel: " + proc["Cel"], border, 0, 'L', true);
@@ -392,9 +400,13 @@ async function cartolinaFPDF(pdf, anno, proc, link_pdf) {
         pdf.Cell(25, 8, " Femmina", 0, 0, 'L');
         pdf.Ln(8);
 
-        var D_Nasc = new Date(proc["D_Nasc"]);
-        pdf.Cell(130, 8, "Data nascita: " +
-            D_Nasc.toLocaleString("it-IT", { day: "2-digit", month: '2-digit', year: 'numeric' }), 0, 0, 'L');
+        if (proc["D_Nasc"] != "") {
+            var D_Nasc = new Date(proc["D_Nasc"]);
+            pdf.Cell(130, 8, "Data nascita: " +
+                D_Nasc.toLocaleString("it-IT", { day: "2-digit", month: '2-digit', year: 'numeric' }), 0, 0, 'L');
+        } else {
+            pdf.Cell(130, 8, "Data nascita:", 0, 0, 'L');
+        }
 
         if (proc["U_AP"] == "U") {
             check = "4";
@@ -429,9 +441,13 @@ async function cartolinaFPDF(pdf, anno, proc, link_pdf) {
         pdf.Cell(25, 8, " Altre pecore", 0, 0, 'L');
         pdf.Ln(8);
 
-        var D_Batt = new Date(proc["D_Batt"]);
-        pdf.Cell(85, 8, "Data di immersione: " +
-            D_Batt.toLocaleString("it-IT", { day: "2-digit", month: '2-digit', year: 'numeric' }), 0, 0, 'L');
+        if (proc["D_Batt"] != "") {
+            var D_Batt = new Date(proc["D_Batt"]);
+            pdf.Cell(85, 8, "Data di immersione: " +
+                D_Batt.toLocaleString("it-IT", { day: "2-digit", month: '2-digit', year: 'numeric' }), 0, 0, 'L');
+        } else {
+            pdf.Cell(85, 8, "Data di immersione:", 0, 0, 'L');
+        }
 
         if (proc["SM_AN"] == "AN") {
             check = "4";
@@ -562,7 +578,7 @@ async function fpdfS21Singola(event, anno, proc) {
     if (canceled) {
         return
     } else {
-        const pdf = new FPDF('P', 'mm', 'A5');
+        const pdf = new FPDF('L', 'mm', 'A5');
         pdf.SetFont('Arial', '', 10);
         pdf.SetTextColor(0, 0, 0);
         pdf.SetAutoPageBreak(1, 3);
