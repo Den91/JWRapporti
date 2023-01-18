@@ -54,14 +54,14 @@ function htmlPresenti(presenti) {
         totF = cF = 0
         console.log(presenti[0])
         keysI.forEach(function (key, indice) {
-            if (presenti[0][key] != null) {
+            if (presenti[0][key] != null && presenti[0][key] != "") {
                 $(`#TablePresenti tbody tr:eq(0) td:eq(${indice + 1})`).html(presenti[0][key])
                 totI += Number(presenti[0][key])
                 cI++
             }
         })
         keysF.forEach(function (key, indice) {
-            if (presenti[0][key] != null) {
+            if (presenti[0][key] != null && presenti[0][key] != "") {
                 $(`#TablePresenti tbody tr:eq(1) td:eq(${indice + 1})`).html(presenti[0][key])
                 totF += Number(presenti[0][key])
                 cF++

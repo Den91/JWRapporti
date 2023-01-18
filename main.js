@@ -825,15 +825,36 @@ async function fpdfS88(event, anno) {
             presenti = await getRows(null, 'presenti', { 'Mese': mesi[x] })
             totI = cI = 0
             totF = cF = 0
-            for (key of keysI) {
-                if (presenti[0][key] != null) {
-                    totI += Number(presenti[0][key])
-                    cI++
+            if (presenti.length > 0) {
+                for (key of keysI) {
+                    if (presenti[0][key] != null && presenti[0][key] != '') {
+                        totI += Number(presenti[0][key])
+                        cI++
+                    }
                 }
-            }
-            if (cI > 0) {
-                contaI++
-                sommaI += Number(totI / cI)
+                if (cI > 0) {
+                    contaI++
+                    sommaI += Number(totI / cI)
+                }
+                for (key of keysF) {
+                    if (presenti[0][key] != null && presenti[0][key] != '') {
+                        totF += Number(presenti[0][key])
+                        cF++
+                    }
+                }
+                if (cF > 0) {
+                    contaF++
+                    sommaF += Number(totF / cF)
+                }
+                mI = Number(totI / cI).toFixed(0)
+                mF = Number(totF / cF).toFixed(0)
+            } else {
+                cI = ''
+                totI = ''
+                cF = ''
+                totF = ''
+                mI = ''
+                mF = ''
             }
             pdf.Cell(32, 8, new Date(mesi[x]).toLocaleString('it-IT', {
                 year: 'numeric',
@@ -841,26 +862,16 @@ async function fpdfS88(event, anno) {
             }), 1, 0, 'L');
             pdf.Cell(18, 8, cI, 1, 0, 'C');
             pdf.Cell(20, 8, totI, 1, 0, 'C');
-            pdf.Cell(20, 8, Number(totI / cI).toFixed(0), 1, 0, 'C');
+            pdf.Cell(20, 8, mI, 1, 0, 'C');
             pdf.Cell(8, 8, "", 0, 0, 'C');
 
-            for (key of keysF) {
-                if (presenti[0][key] != null) {
-                    totF += Number(presenti[0][key])
-                    cF++
-                }
-            }
-            if (cF > 0) {
-                contaF++
-                sommaF += Number(totF / cF)
-            }
             pdf.Cell(32, 8, new Date(mesi[x]).toLocaleString('it-IT', {
                 year: 'numeric',
                 month: 'long'
             }), 1, 0, 'L');
             pdf.Cell(18, 8, cF, 1, 0, 'C');
             pdf.Cell(20, 8, totF, 1, 0, 'C');
-            pdf.Cell(20, 8, Number(totF / cF).toFixed(0), 1, 0, 'C');
+            pdf.Cell(20, 8, mF, 1, 0, 'C');
             pdf.Ln(8);
         }
 

@@ -62,7 +62,7 @@ async function visualS88() {
                 totI = cI = 0
                 totF = cF = 0
                 for (key of keysI) {
-                    if (presenti[0][key] != null) {
+                    if (presenti[0][key] != null && presenti[0][key] != '') {
                         totI += Number(presenti[0][key])
                         cI++
                     }
@@ -75,7 +75,7 @@ async function visualS88() {
                 $(`table:eq(0) tbody tr:eq(${x}) td:eq(${2})`).html(totI)
                 $(`table:eq(0) tbody tr:eq(${x}) td:eq(${3})`).html(Number(totI / cI).toFixed(0))
                 for (key of keysF) {
-                    if (presenti[0][key] != null) {
+                    if (presenti[0][key] != null && presenti[0][key] != '') {
                         totF += Number(presenti[0][key])
                         cF++
                     }
