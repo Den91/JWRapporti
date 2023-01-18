@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog } = require('electron')
+const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron')
 const path = require('path')
 const fs = require('fs')
 const os = require('os')
@@ -6,6 +6,8 @@ const db = require("electron-db")
 const tabelle = ['anagrafica', 'gruppi', 'rapporti', 'presenti', 'sorvegliante']
 const FPDF = require('node-fpdf')
 const { autoUpdater } = require('electron-updater');
+const log = require('electron-log');
+let updateWindow, mainWindow
 
 var pack = null
 try {
@@ -29,7 +31,6 @@ if (platform === 'win32') {
 
 app.whenReady().then(() => {
     creaTabelle()
-    //console.log(process.versions.node)
     ipcMain.handle('login', login)
     ipcMain.handle('importFile', importFile)
     ipcMain.handle('backupFile', backupFile)
@@ -45,30 +46,60 @@ app.whenReady().then(() => {
     ipcMain.handle('fpdfS21Tutte', fpdfS21Tutte)
     ipcMain.handle('fpdfS88', fpdfS88)
     ipcMain.handle('fpdfRapporti', fpdfRapporti)
-    const win = new BrowserWindow({
+    mainWindow = new BrowserWindow({
         icon: '/images/icon.png',
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
         },
     })
-    win.maximize();
+    mainWindow.maximize();
     //win.loadFile('./home/index.html')
-    win.loadFile('./login/index.html')
-    win.setTitle("JW Rapporti " + pack.version);
-    win.once('ready-to-show', () => {
-        autoUpdater.checkForUpdatesAndNotify();
-    });
-    autoUpdater.on('update-available', () => {
-        win.webContents.send('update_available');
-    });
-    autoUpdater.on('update-downloaded', () => {
-        win.webContents.send('update_downloaded');
-    });
-    ipcMain.on('restart_app', () => {
-        autoUpdater.quitAndInstall();
-    });
+    mainWindow.loadFile('./login/index.html')
+    mainWindow.setTitle("JW Rapporti " + pack.version);
+    autoUpdater.checkForUpdates();
 })
 
+autoUpdater.on('checking-for-update', () => {
+    log.info("Checking for update.")
+})
+autoUpdater.on('update-available', (info) => {
+    updateWindow = new BrowserWindow({
+        parent: mainWindow,
+        width: 600,
+        height: 300,
+        modal: true,
+        show: true,
+        closable: false,
+        webPreferences: {
+            preload: path.join(__dirname, 'preload.js'),
+        },
+    })
+    updateWindow.loadFile('./update/index.html')
+    updateWindow.show()
+    log.info('Update available.');
+})
+autoUpdater.on('update-not-available', (info) => {
+    log.info('Update not available.');
+})
+autoUpdater.on('error', (err) => {
+    log.info('Error in auto-updater. ' + err);
+    updateWindow.webContents.send('messaggioUpdate', 'Errore: ' + err);
+    updateWindow.closable = true;
+})
+autoUpdater.on('download-progress', (progressObj) => {
+    /*
+    let log_message = "Download speed: " + progressObj.bytesPerSecond;
+    log_message = log_message + ' - Downloaded ' + progressObj.percent + '%';
+    log_message = log_message + ' (' + progressObj.transferred + "/" + progressObj.total + ')';
+    */
+    updateWindow.webContents.send('progressoUpdate', progressObj)
+})
+autoUpdater.on('update-downloaded', (info) => {
+    log.info('Update downloaded');
+    updateWindow.webContents.send('messaggioUpdate', `Aggiornamento scaricato<br />
+    Verrà installato alla chiusura dell'applicazione`)
+    updateWindow.closable = true;
+});
 
 function login(event, username, password) {
     if (username.toUpperCase() == "SEGRETARIO" && password == "Rapporti1914")
@@ -182,6 +213,7 @@ async function fpdfAnagrafica() {
         }
         try {
             pdf.Output('F', path.join(filePaths[0], 'anagrafica.pdf'))
+            shell.showItemInFolder(path.join(filePaths[0], 'anagrafica.pdf'));
             return { succ: true, msg: "File creato" }
         } catch (e) {
             return { succ: false, msg: 'Errore: ' + e }
@@ -338,6 +370,8 @@ async function fpdfRapporti(event, mese) {
         try {
             pdf.Output('F', path.join(filePaths[0],
                 `rapporti ${mese_date.toLocaleString('it-IT', { month: 'long', year: 'numeric' })}.pdf`))
+            shell.showItemInFolder(path.join(filePaths[0],
+                `rapporti ${mese_date.toLocaleString('it-IT', { month: 'long', year: 'numeric' })}.pdf`));
             return { succ: true, msg: "File creato" }
         } catch (e) {
             return { succ: false, msg: 'Errore: ' + e }
@@ -589,6 +623,7 @@ async function fpdfS21Singola(event, anno, proc) {
         await cartolinaFPDF(pdf, anno, proc, null)
         try {
             pdf.Output('F', path.join(filePaths[0], `S-21 ${proc.Nome} ${anno}.pdf`))
+            shell.showItemInFolder(path.join(filePaths[0], `S-21 ${proc.Nome} ${anno}.pdf`));
             return { succ: true, msg: "File creato" }
         } catch (e) {
             return { succ: false, msg: 'Errore: ' + e }
@@ -739,6 +774,7 @@ async function fpdfS21Tutte(event, anno) {
 
         try {
             pdf.Output('F', path.join(filePaths[0], `S-21 complete ${anno}.pdf`))
+            shell.showItemInFolder(path.join(filePaths[0], `S-21 complete ${anno}.pdf`));
             return { succ: true, msg: "File creato" }
         } catch (e) {
             return { succ: false, msg: 'Errore: ' + e }
@@ -836,6 +872,7 @@ async function fpdfS88(event, anno) {
 
         try {
             pdf.Output('F', path.join(filePaths[0], `S-88 ${anno}.pdf`))
+            shell.showItemInFolder(path.join(filePaths[0], `S-88 ${anno}.pdf`));
             return { succ: true, msg: "File creato" }
         } catch (e) {
             return { succ: false, msg: 'Errore: ' + e }
@@ -843,6 +880,7 @@ async function fpdfS88(event, anno) {
     }
 }
 
+//import da xampp
 async function importaFile() {
     const { canceled, filePaths } = await dialog.showOpenDialog()
     if (canceled) {

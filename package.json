@@ -12,7 +12,7 @@
   "author": "Sita Dennis",
   "license": "ISC",
   "devDependencies": {
-    "electron": "^21.0.0",
+    "electron": "^22.0.2",
     "electron-builder": "^23.6.0",
     "versiony": "^2.0.1"
   },
@@ -22,6 +22,7 @@
     "chart.js": "^3.9.1",
     "electron-builder-squirrel-windows": "^24.0.0-alpha.8",
     "electron-db": "^0.15.7",
+    "electron-log": "^4.4.8",
     "electron-squirrel-startup": "^1.0.0",
     "electron-updater": "^5.3.0",
     "jquery": "^3.6.1",

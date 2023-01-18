@@ -16,4 +16,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     fpdfS21Tutte: (anno) => ipcRenderer.invoke('fpdfS21Tutte', anno),
     fpdfS88: (anno) => ipcRenderer.invoke('fpdfS88', anno),
     fpdfRapporti: (mese) => ipcRenderer.invoke('fpdfRapporti', mese),
+    messaggioUpdate: (callback) => ipcRenderer.on('messaggioUpdate', callback),
+    progressoUpdate: (callback) => ipcRenderer.on('progressoUpdate', callback),
 })
