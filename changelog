@@ -1,11 +1,14 @@
-v 1.0.0
+v1.0.0
 - Release iniziale
 
-v 1.0.1
+v1.0.1
 - S-88: sistemata media dei presenti annuale
 - Dati: importa dati da backup
 
-v 1.0.5
+v1.0.5
 - bug fix persi
 - PDF: mostrato "Invalid date"
 - impostato autoupdate per windows
+
+v1.0.7
+- risolto bug backup su windows

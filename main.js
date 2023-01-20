@@ -1082,8 +1082,16 @@ async function backupFile() {
             backup[tabella] = JSON.parse(fs.readFileSync(path.join(userData, tabella + '.json')))[tabella]
         }
         try {
-            fs.writeFileSync(path.join(filePaths[0], 'backup_' + new Date().toISOString().slice(0, 16) + '.json'),
+            d = new Date()
+            nomeFile = 'backup_' +
+                d.getFullYear() + '-' +
+                ('0' + (d.getMonth() + 1)).slice(-2) + '-' +
+                ('0' + d.getDate()).slice(-2) + '-' +
+                d.getHours() + '-' +
+                d.getMinutes() + '.json'
+            fs.writeFileSync(path.join(filePaths[0], nomeFile),
                 JSON.stringify(backup, null, 2), (err) => {
+                    log.info(err)
                     throw err;
                 })
             return { succ: true, msg: 'Backup effettuato' }
