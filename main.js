@@ -227,14 +227,20 @@ async function fpdfRapporti(event, mese) {
         return
     } else {
         proclamatori = await getAll(null, 'anagrafica')
-        proclamatori.sort(function (a, b) {
+        rapporti = await getRows(null, 'rapporti', { 'Mese': mese })
+
+        rapporti.forEach(function (rapporto, indice) {
+            let proc = proclamatori.find(item => item.id === rapporto.CE_Anag)
+            rapporto.Nome = proc.Nome
+        })
+        rapporti.sort(function (a, b) {
             if (a.Nome < b.Nome)
                 return -1
             if (a.Nome > b.Nome)
                 return 1
             return 0
         })
-        rapporti = await getRows(null, 'rapporti', { 'Mese': mese })
+
         var keys = ['Pubb', 'Video', 'Ore', 'VU', 'Studi']
         const pdf = new FPDF('P', 'mm', 'A4');
         pdf.SetTextColor(0, 0, 0);
@@ -252,7 +258,8 @@ async function fpdfRapporti(event, mese) {
             "Rapporti " + mese_date.toLocaleString('it-IT', { month: 'long', year: 'numeric' }), border, 0, 'C');
         pdf.Ln(row + 2);
         pdf.SetFont('Arial', 'B', 10);
-        c1 = 55;
+        c0 = 7
+        c1 = 48;
         c2 = 16;
         c3 = 16;
         c4 = 16;
@@ -260,6 +267,7 @@ async function fpdfRapporti(event, mese) {
         c6 = 16;
         c7 = 16;
         c8 = 53;
+        pdf.Cell(c0, row, '#', border, 0, 'C');
         pdf.Cell(c1, row, 'Nome proclamatore', border, 0, 'L');
         pdf.Cell(c2, row, 'Inc', border, 0, 'C');
         pdf.Cell(c3, row, 'Pubb', border, 0, 'C');
@@ -284,6 +292,7 @@ async function fpdfRapporti(event, mese) {
                 pdf.SetFillColor(255, 255, 255);
             }
             proc = proclamatori.find(item => item.id === rapporto.CE_Anag)
+            pdf.Cell(c0, row, x, border, 0, 'C', true);
             pdf.Cell(c1, row, unescapeHtml(proc['Nome']), border, 0, 'L', true);
             pdf.Cell(c2, row, rapporto['Inc'], border, 0, 'C', true);
             pdf.Cell(c3, row, rapporto['Pubb'] ? rapporto['Pubb'] : '', border, 0, 'C', true);
