@@ -13,3 +13,9 @@ v1.0.5
 v1.0.7
 - risolto bug backup su windows
 - pdf rapporti in ordine alfabetico
+
+v1.0.8
+- pdf cartoline tutte: non mostrava sorvegliante gruppo
+
+v1.0.9
+- pdf cartoline tutte: cartoline totali non mostrate

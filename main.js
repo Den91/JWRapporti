@@ -707,6 +707,7 @@ async function fpdfS21Tutte(event, anno) {
 
         for (proc_filter of proclamatori) {
             pdf.SetFont('Arial', '', 16);
+            gruppo = gruppi.find(item => item.id === proc_filter[0].Gr)
             pdf.Cell(mm_colonna * 4, 10, `Proclamatori - Gruppo ${gruppo['Num']} ${gruppo["Sorv_Gr"]}`, 1, 0, 'C');
             pdf.Ln(10);
             pdf.SetFont('Arial', '', 10);
@@ -771,15 +772,15 @@ async function fpdfS21Tutte(event, anno) {
 
         pdf.AddPage();
         pdf.SetY(3);
-        await cartolinaFPDF(pdf, anno, 'p', link_pdf_p);
+        await cartolinaFPDF(pdf, anno, { id: 'p', Nome: "Proclamatori" }, link_pdf_p);
 
         pdf.AddPage();
         pdf.SetY(3);
-        await cartolinaFPDF(pdf, anno, 'pa', link_pdf_pa);
+        await cartolinaFPDF(pdf, anno, { id: 'pa', Nome: "Pionieri Ausiliari" }, link_pdf_pa);
 
         pdf.AddPage();
         pdf.SetY(3);
-        await cartolinaFPDF(pdf, anno, 'pr', link_pdf_pr);
+        await cartolinaFPDF(pdf, anno, { id: 'pr', Nome: "Pionieri Regolari" }, link_pdf_pr);
 
         try {
             pdf.Output('F', path.join(filePaths[0], `S-21 complete ${anno}.pdf`))
