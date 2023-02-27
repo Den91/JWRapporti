@@ -145,7 +145,7 @@ async function fpdfAnagrafica() {
                 pdf.Ln(row + 1);
             }
             c = 1;
-            proclamatori = await getRows(null, 'anagrafica', { 'Gr': gruppo.id })
+            proclamatori = await getRows(null, 'anagrafica', { 'Gr': gruppo.id, 'Elimina': '0' })
             proclamatori.sort(function (a, b) {
                 if (a.Nome < b.Nome)
                     return -1
