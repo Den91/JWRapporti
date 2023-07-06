@@ -1,11 +1,15 @@
+var proclamatori
+var rapporti
+
 $(document).ready(async function () {
     navbar("home")
 
-    let proclamatori = await window.electronAPI.getRows('anagrafica', { Attivo: '1', Elimina: '0' })
+    proclamatori = await window.electronAPI.readFile('anagrafica')
+    //let proclamatori = await window.electronAPI.getRows('anagrafica', { Attivo: '1', Elimina: '0' })
     proclamatori.sort(function (a, b) {
-        if (a.Nome < b.Nome)
+        if (a.Nome.toUpperCase() < b.Nome.toUpperCase())
             return -1
-        if (a.Nome > b.Nome)
+        if (a.Nome.toUpperCase() > b.Nome.toUpperCase())
             return 1
         return 0
     })
@@ -15,7 +19,7 @@ $(document).ready(async function () {
         let d = new Date(item.D_Batt)
         return d.getFullYear() + 1 == oggi.getFullYear() &&
             d.getMonth() == oggi.getMonth()
-    });
+    })
     if (unAnnoBattezzati.length > 0) {
         $('#unAnnoBattezzati').removeClass('d-none')
         for (proc of unAnnoBattezzati) {
@@ -40,15 +44,15 @@ $(document).ready(async function () {
     $('#divElenco').html(``)
     let mese = new Date()
     mese.setMonth(oggi.getMonth() - 1);
+    rapporti = await window.electronAPI.readFile('rapporti')
     for (proc of proclamatori) {
-        rap = await window.electronAPI.getRows('rapporti', {
-            Mese: `${mese.toLocaleString('it-IT', {
-                year: 'numeric'
-            })}-${mese.toLocaleString('it-IT', {
-                month: '2-digit'
-            })}`, CE_Anag: proc.id
-        })
-        if (rap.length == 0) {
+        m = `${mese.toLocaleString('it-IT', {
+            year: 'numeric'
+        })}-${mese.toLocaleString('it-IT', {
+            month: '2-digit'
+        })}`
+        rapporti_mese = rapporti.filter(i => (i.Mese == m) && (i.CE_Anag == proc.id))
+        if (rapporti_mese.length == 0) {
             $('#divRapportiMancanti').removeClass('d-none')
             $('#divElenco').append(`<div class="col-2 py-1"><i class="bi bi-person-fill"></i> ${proc.Nome}</div>`)
         }
@@ -73,31 +77,18 @@ $(document).ready(async function () {
     let video = []
     let vu = []
     let studi = []
-    let mesi = []
-    var keys = ['Pubb', 'Video', 'Ore', 'VU', 'Studi']
-    mese = oggi
-    mese.setFullYear(mese.getFullYear() - 1);
-    for (let x = 0; x < 12; x++) {
-        let m = `${mese.toLocaleString('it-IT', {
-            year: 'numeric'
-        })}-${mese.toLocaleString('it-IT', {
-            month: '2-digit'
-        })}`
-        mesi.push(mese.toLocaleString('it-IT', {
-            year: '2-digit',
-            month: 'short'
-        }))
-        let d = await window.electronAPI.sum('rapporti',
-            {
-                'Mese': m,
-            }, keys)
-        ore.push(d.Ore)
-        pubb.push(d.Pubb)
-        video.push(d.Video)
-        vu.push(d.VU)
-        studi.push(d.Studi)
-        mese.setMonth(mese.getMonth() + 1);
-    }
+    let anno = getAnnoTeocratico()
+    let mesi = mesiAnnoTeocratico(anno)
+    mesi.forEach(m => {
+        rapporti_mese = rapporti.filter(item => item.Mese == m)
+        if (rapporti_mese.length > 0) {
+            ore.push(rapporti_mese.map(item => item.Ore).reduce((p, n) => p + n))
+            pubb.push(rapporti_mese.map(item => item.Pubb).reduce((p, n) => p + n))
+            video.push(rapporti_mese.map(item => item.Video).reduce((p, n) => p + n))
+            vu.push(rapporti_mese.map(item => item.VU).reduce((p, n) => p + n))
+            studi.push(rapporti_mese.map(item => item.Studi).reduce((p, n) => p + n))
+        }
+    })
     const canvas0 = new Chart($('#canvas0'), {
         type: 'line',
         data: {
@@ -111,6 +102,13 @@ $(document).ready(async function () {
                     tension: 0
                 },
             ]
+        },
+        options: {
+            scales: {
+                y: {
+                    suggestedMin: 0
+                }
+            }
         }
     })
     const canvas1 = new Chart($('#canvas1'), {
@@ -126,6 +124,13 @@ $(document).ready(async function () {
                     tension: 0
                 },
             ]
+        },
+        options: {
+            scales: {
+                y: {
+                    suggestedMin: 0
+                }
+            }
         }
     })
     const canvas2 = new Chart($('#canvas2'), {
@@ -141,6 +146,13 @@ $(document).ready(async function () {
                     tension: 0
                 },
             ]
+        },
+        options: {
+            scales: {
+                y: {
+                    suggestedMin: 0
+                }
+            }
         }
     })
     const canvas3 = new Chart($('#canvas3'), {
@@ -156,6 +168,13 @@ $(document).ready(async function () {
                     tension: 0
                 },
             ]
+        },
+        options: {
+            scales: {
+                y: {
+                    suggestedMin: 0
+                }
+            }
         }
     })
     const canvas4 = new Chart($('#canvas4'), {
@@ -171,6 +190,13 @@ $(document).ready(async function () {
                     tension: 0
                 },
             ]
+        },
+        options: {
+            scales: {
+                y: {
+                    suggestedMin: 0
+                }
+            }
         }
     })
 })

@@ -5,17 +5,19 @@ var procEliminati
 
 $(document).ready(async function () {
     navbar("anagrafica")
-    visualCO()
-    visualGruppi()
-    visualProclamatori()
-    visualEliminati()
     ordinaTabella($("#tableAnagrafica th:eq(0)")[0])
-    mostraNotifiche()
+    loadPage()
 })
 
 $(window).resize(function () {
     marginBody();
 })
+
+async function loadPage() {
+    visualCO()
+    visualGruppi()
+    visualProclamatori()
+}
 
 $("th").click(function () {
     ordinaTabella(this)
@@ -26,19 +28,15 @@ $(":checkbox").change(function () {
 })
 
 $("input").focus(function () {
-    if ($(this).hasClass("is-invalid")) $(this).removeClass("is-invalid");
+    if ($(this).hasClass("is-invalid")) $(this).removeClass("is-invalid")
 })
 
 async function visualCO() {
-    co = await window.electronAPI.getAll('sorvegliante')
+    co = await window.electronAPI.readFile('sorvegliante')
     if (co.length === 0) {
         $("#buttonCO").html('<i class="bi bi-person-plus-fill"></i>')
         $("#DivCO").html('')
-        $('[name="Nome_CO"]').val('')
-        $('[name="Cel_CO"]').val('')
-        $('[name="Email_CO"]').val('')
     } else {
-        co = co[0]
         $("#buttonCO").html('<i class="bi bi-pencil-square"></i>');
         $("#DivCO").html(`
             <div class="table-responsive">
@@ -52,57 +50,50 @@ async function visualCO() {
                     </thead>
                     <tbody>
                         <tr>
-                            <td class="">${co.Nome_CO}</td>
-                            <td class="">${co.Cel_CO}</td>
-                            <td class="">${co.Email_CO}</td>
+                            <td class="">${co[0].Nome_CO}</td>
+                            <td class="">${co[0].Cel_CO}</td>
+                            <td class="">${co[0].Email_CO}</td>
                         </tr>
                     </tbody>
                 </table>
-            </div>`);
-        $('[name="Nome_CO"]').val(co.Nome_CO)
-        $('[name="Cel_CO"]').val(co.Cel_CO)
-        $('[name="Email_CO"]').val(co.Email_CO)
+            </div>`)
     }
 }
 
 function modalCO() {
-    $("#ModalCO").modal("show");
+    if (co.length === 0) {
+        $("#FormCO").trigger("reset");
+    } else {
+        $('[name="Nome_CO"]').val(co[0].Nome_CO)
+        $('[name="Cel_CO"]').val(co[0].Cel_CO)
+        $('[name="Email_CO"]').val(co[0].Email_CO)
+    }
+    $("#ModalCO").modal("show")
 }
 
-$('#FormCO').submit(async function (e) {
-    //$('#SalvaCO').click(async function () {
-    $("#ModalCO").modal("hide");
-    if (co.length === 0) {
-        result = await window.electronAPI.insertTableContent(
-            'sorvegliante',
-            {
-                'Nome_CO': $("#Nome_CO").val(),
-                'Cel_CO': $("#Cel_CO").val(),
-                'Email_CO': $("#Email_CO").val(),
-                'CP_CO': 0
-            }
-        )
-    } else {
-        result = await window.electronAPI.updateRow(
-            'sorvegliante',
-            {
-                'Nome_CO': $("#Nome_CO").val(),
-                'Cel_CO': $("#Cel_CO").val(),
-                'Email_CO': $("#Email_CO").val(),
-            },
-            { 'CP_CO': 0 }
-        )
+async function salvaCO() {
+    $("#ModalCO").modal("hide")
+    try {
+        result = await window.electronAPI.writeFile('sorvegliante', [{
+            'Nome_CO': $("#Nome_CO").val(),
+            'Cel_CO': $("#Cel_CO").val(),
+            'Email_CO': $("#Email_CO").val(),
+        }])
+    } catch (e) {
+        loadPage()
+        toast(new Date().getTime(), "rosso", e, 10000)
+        return
     }
-    if (result.succ)
-        result.msg = 'Dati salvati'
-    notifichePush(result)
-});
+    toast(new Date().getTime(), "verde", `Dati salvati`)
+    loadPage()
+}
 
 async function visualGruppi() {
-    gruppi = await window.electronAPI.getAll('gruppi')
+    gruppi = await window.electronAPI.readFile('gruppi')
     gruppi.sort(function (a, b) {
         return a.Num - b.Num
     })
+    //console.log(gruppi)
     $("#DivGruppi").removeClass(`row-cols-md-1 row-cols-md-2 row-cols-md-3 row-cols-md-4`)
     $("#DivGruppi").html('')
     $("#Gr").html()
@@ -110,7 +101,7 @@ async function visualGruppi() {
         $("#DivGruppi").addClass(`row-cols-md-${gruppi.length}`)
     if (gruppi.length > 4)
         $("#DivGruppi").addClass(`row-cols-md-3`)
-    gruppi.forEach(function (gruppo, indice) {
+    gruppi.forEach(function (gruppo) {
         $("#DivGruppi").append(`
                 <div class="col d-grid mb-1">
                     <button class="btn btn-outline-secondary" onclick="modalGruppo('${gruppo["id"]}')">
@@ -129,78 +120,74 @@ async function visualGruppi() {
 }
 
 function modalGruppo(CP_Gruppo) {
-    $("#FormGruppo").trigger("reset");
-    $("#Num").val(gruppi.length + 1);
+    $("#FormGruppo").trigger("reset")
+    $("#Num").val(gruppi.length + 1)
     $('#CP_Gruppo').val('');
     $('#EliminaGruppo').addClass("d-none");
     if (CP_Gruppo != '') {
         $('#EliminaGruppo').removeClass("d-none");
-        gruppo = gruppi.find((item) => item['id'] === parseInt(CP_Gruppo));
+        gruppo = gruppi.find((item) => item['id'] === Number(CP_Gruppo))
         $('#CP_Gruppo').val(CP_Gruppo);
         $("#Num").val(parseInt(gruppo.Num));
         $("#Sorv_Gr").val(gruppo.Sorv_Gr);
     }
-    $("#ModalGruppo").modal("show");
+    $("#ModalGruppo").modal("show")
 }
 
-$('#FormGruppo').submit(async function salvaGruppo(e) {
-    //$('#SalvaGruppo').click(async function () {
+async function salvaGruppo(CP_Gruppo) {
     $("#ModalGruppo").modal("hide")
-    if ($('#CP_Gruppo').val() == '') {
-        result = await window.electronAPI.insertTableContent(
-            'gruppi',
-            {
-                'Num': $("#Num").val(),
-                'Sorv_Gr': $("#Sorv_Gr").val(),
-            }
-        )
-        if (result.succ)
-            result.msg = 'Gruppo inserito'
+    if (CP_Gruppo == '') {
+        gruppi.push({
+            'Num': $("#Num").val(),
+            'Sorv_Gr': $("#Sorv_Gr").val(),
+            'id': new Date().getTime()
+        })
     } else {
-        result = await window.electronAPI.updateRow(
-            'gruppi',
-            {
-                'Num': $("#Num").val(),
-                'Sorv_Gr': $("#Sorv_Gr").val(),
-            },
-            { 'id': parseInt($('#CP_Gruppo').val()) }
-        )
-        if (result.succ)
-            result.msg = 'Gruppo modificato'
+        let n = gruppi.findIndex((item) => item.id === Number(CP_Gruppo))
+        gruppi[n].Num = $("#Num").val()
+        gruppi[n].Sorv_Gr = $("#Sorv_Gr").val()
     }
-    notifichePush(result)
-})
-
-$('#EliminaGruppo').click(async function eliminaGruppo() {
-    $("#ModalGruppo").modal("hide")
-    gruppoElimina = parseInt($('#CP_Gruppo').val())
-    result = await window.electronAPI.deleteRow(
-        'gruppi',
-        { 'id': gruppoElimina }
-    )
-    if (!result.succ) {
-        notifichePush(result)
-        location.reload();
+    try {
+        result = await window.electronAPI.writeFile('gruppi', gruppi)
+    } catch (e) {
+        loadPage()
+        toast(new Date().getTime(), "rosso", e, 10000)
         return
     }
-    proclamatori = await window.electronAPI.getRows('anagrafica', { 'Gr': gruppoElimina })
+    toast(new Date().getTime(), "verde", `Dati salvati`)
+    loadPage()
+}
+
+async function eliminaGruppo(CP_Gruppo) {
+    $("#ModalGruppo").modal("hide")
+    let n = gruppi.findIndex((item) => item.id == Number(CP_Gruppo))
+    let eliminato = gruppi[n]
+    gruppi.splice(n, 1)
+    try {
+        result = await window.electronAPI.writeFile('gruppi', gruppi)
+    } catch (e) {
+        loadPage()
+        toast(new Date().getTime(), "rosso", e, 10000)
+        return
+    }
     if (proclamatori.length > 0) {
-        result2 = await window.electronAPI.updateRow(
-            'anagrafica',
-            { 'Gr': '' },
-            { 'Gr': gruppoElimina }
-        )
-        if (!result2.succ) {
-            result2.msg = result2.msg + ' ' + proc.Nome
-            notifichePush(result2)
-            location.reload();
+        proclamatori.forEach(function (proc, indice) {
+            if (proc.Gr == Number(CP_Gruppo)) {
+                proclamatori[indice].Gr = ''
+                console.log(proclamatori[indice])
+            }
+        })
+        try {
+            result = await window.electronAPI.writeFile('anagrafica', proclamatori)
+        } catch (e) {
+            loadPage()
+            toast(new Date().getTime(), "rosso", e, 10000)
             return
         }
     }
-    result.msg = 'Gruppo eliminato'
-    notifichePush(result)
-    location.reload();
-});
+    toast(new Date().getTime(), "verde", `Gruppo ${eliminato.Num} eliminato`)
+    loadPage()
+}
 
 function getAge(dateString) {
     if (dateString == null || dateString == "") return "";
@@ -211,63 +198,70 @@ function getAge(dateString) {
 }
 
 async function visualProclamatori() {
-    proclamatori = await window.electronAPI.getRows('anagrafica', { 'Elimina': '0' })
+    $("#TBodyProc").html('')
+    $("#tableEliminati tbody").html('')
+    proclamatori = await window.electronAPI.readFile('anagrafica')
     proclamatori.sort(function (a, b) {
-        if (a.Nome < b.Nome)
+        if (a.Nome.toUpperCase() < b.Nome.toUpperCase())
             return -1
-        if (a.Nome > b.Nome)
+        if (a.Nome.toUpperCase() > b.Nome.toUpperCase())
             return 1
         return 0
     })
+    //console.log(proclamatori)
     proclamatori.forEach(function (proc, indice) {
-        if (proc["Gr"]) {
-            gruppo = gruppi.find((item) => item.id === parseInt(proc["Gr"]));
-            gruppoTxt = `${gruppo.Num} - ${gruppo.Sorv_Gr}`;
+        if (proc.Elimina == 0) {
+            if (proc.Gr != '') {
+                var gruppo = gruppi.find((item) => item.id === Number(proc["Gr"]))
+                var gruppoTxt = `${gruppo.Num} - ${gruppo.Sorv_Gr}`
+            } else {
+                gruppoTxt = ""
+            }
+            $("#TBodyProc").append(`
+                <tr onclick="modalProclamatore('${proc["id"]}', 0)">
+                    <td>${proc["Nome"]}</td>
+                    <td>${getAge(proc["D_Nasc"])}</td>
+                    <td>${proc["Cel"] || proc["Tel"]}</td>
+                    <td>${proc["Email"]}</td>
+                    <td>${proc["Emerg"]}</td>
+                    <td>${gruppoTxt}</td>
+                    <td>${proc["Attivo"] == '0' ? "Inattivo" : "Attivo"}</td>
+                </tr>`)
         } else {
-            gruppoTxt = "";
+            $("#tableEliminati tbody").append(`
+                <tr onclick="modalProclamatore(${proc["id"]}, 1)">
+                    <td>${proc["Nome"]}</td>
+                    <td>${getAge(proc["D_Nasc"])}</td>
+                    <td>${proc["Cel"] || proc["Tel"]}</td>
+                    <td>${proc["Email"]}</td>
+                    <td>${proc["Emerg"]}</td>
+                </tr>`)
         }
-        $("#TBodyProc").append(`
-            <tr onclick="modalProclamatore('${proc["id"]}', 0)">
-                <td>${proc["Nome"]}</td>
-                <td>${getAge(proc["D_Nasc"])}</td>
-                <td>${proc["Cel"] || proc["Tel"]}</td>
-                <td>${proc["Email"]}</td>
-                <td>${proc["Emerg"]}</td>
-                <td>${gruppoTxt}</td>
-                <td>${proc["Attivo"] == '0' ? "Inattivo" : "Attivo"}</td>
-            </tr>`);
     })
 }
 
-async function visualEliminati() {
-    procEliminati = await window.electronAPI.getRows('anagrafica', { 'Elimina': '1' })
-    procEliminati.forEach(function (proc, indice) {
-        $("#tableEliminati tbody").append(`
-            <tr onclick="modalProclamatore(${proc["id"]}, 1)">
-                <td>${proc["Nome"]}</td>
-                <td>${getAge(proc["D_Nasc"])}</td>
-                <td>${proc["Cel"] || proc["Tel"]}</td>
-                <td>${proc["Email"]}</td>
-                <td>${proc["Emerg"]}</td>
-            </tr>`);
-    });
-}
-
 function modalProclamatore(CP_Anag, eliminato) {
-    $("#FormProclamatore").trigger("reset");
-    //$("#FormProclamatore").find("input").removeClass("is-invalid");
-    $('#CP_Anag').val("");
+    $("#Gr").html('')
+    gruppi.forEach(function (gruppo) {
+        //modal gruppi select option
+        $("#Gr").append(
+            $("<option>", {
+                value: gruppo["id"],
+                text: `${gruppo["Num"]} - ${gruppo["Sorv_Gr"]}`,
+            })
+        )
+    })
+    $("#FormProclamatore").trigger("reset")
+    //$("#FormProclamatore").find("input").removeClass("is-invalid")
+    $('#CP_Anag').val("")
     $('[name="EliminaProclamatore"]').addClass("d-none");
     $('[name="RipristinaProclamatore"]').addClass("d-none");
     if (CP_Anag != "") {
-        if (eliminato == 0) {
-            //non eliminato
-            proc = proclamatori.find((item) => item.id == parseInt(CP_Anag));
+        proc = proclamatori.find((item) => item.id == parseInt(CP_Anag));
+        if (eliminato == 0) { //non eliminato
             $('#EliminaProclamatore').removeClass("d-none");
         }
-        if (eliminato == 1) {
-            //eliminato
-            proc = procEliminati.find((item) => item.id == parseInt(CP_Anag));
+        if (eliminato == 1) { //eliminato
             $('#RipristinaProclamatore').removeClass("d-none");
         }
         $('#CP_Anag').val(CP_Anag);
@@ -312,92 +306,91 @@ function inverti(input) {
     }
 }
 
-$('#FormProclamatore').submit(async function (e) {
+async function salvaProclamatore(CP_Anag) {
     $("#ModalProclamatore").modal("hide")
-    if ($('#CP_Anag').val() == '') {
-        result = await window.electronAPI.insertTableContent(
-            'anagrafica',
-            {
-                'Nome': $("#Nome").val(),
-                'Nome2': $("#Nome2").val(),
-                'Ind': $("#Ind").val(),
-                'D_Nasc': $("#D_Nasc").val(),
-                'D_Batt': $("#D_Batt").val(),
-                'Tel': $("#Tel").val(),
-                'Cel': $("#Cel").val(),
-                'Email': $("#Email").val(),
-                'Emerg': $("#Emerg").val(),
-                'S': $('input[name=S]:checked').val(),
-                'U_AP': ($('#U:checked').val() ?? '') + ($('#P:checked').val() ?? ''),
-                'SM_AN': ($('#SM:checked').val() ?? '') + ($('#AN:checked').val() ?? ''),
-                'PR_PS': ($('#PR:checked').val() ?? '') + ($('#PS:checked').val() ?? ''),
-                'Attivo': $('input[name=Attivo]:checked').val(),
-                'Gr': Number($('#Gr').find(":selected").val()),
-                'Elimina': "0",
-            }
-        )
-        if (result.succ)
-            result.msg = 'Proclamatore inserito'
-    } else {
-        result = await window.electronAPI.updateRow(
-            'anagrafica',
-            {
-                'Nome': $("#Nome").val(),
-                'Nome2': $("#Nome2").val(),
-                'Ind': $("#Ind").val(),
-                'D_Nasc': $("#D_Nasc").val(),
-                'D_Batt': $("#D_Batt").val(),
-                'Tel': $("#Tel").val(),
-                'Cel': $("#Cel").val(),
-                'Email': $("#Email").val(),
-                'Emerg': $("#Emerg").val(),
-                'S': $('input[name=S]:checked').val(),
-                'U_AP': ($('#U:checked').val() ?? '') + ($('#P:checked').val() ?? ''),
-                'SM_AN': ($('#SM:checked').val() ?? '') + ($('#AN:checked').val() ?? ''),
-                'PR_PS': ($('#PR:checked').val() ?? '') + ($('#PS:checked').val() ?? ''),
-                'Attivo': $('input[name=Attivo]:checked').val(),
-                'Gr': Number($('#Gr').find(":selected").val()),
-            },
-            { 'id': parseInt($('#CP_Anag').val()) }
-        )
-        if (result.succ)
-            result.msg = 'Proclamatore modificato'
-    }
-    notifichePush(result)
-})
-
-$('#EliminaProclamatore').click(async function () {
-    $("#ModalProclamatore").modal("hide")
-    result = await window.electronAPI.updateRow(
-        'anagrafica',
-        {
-            'Elimina': "1",
-        },
-        { 'id': parseInt($('#CP_Anag').val()) }
-    )
-    if (result.succ)
-        result.msg = 'Proclamatore disattivato'
-    notifichePush(result)
-    location.reload()
-});
-
-$('#RipristinaProclamatore').click(async function () {
-    $("#ModalProclamatore").modal("hide")
-    result = await window.electronAPI.updateRow(
-        'anagrafica',
-        {
+    if (CP_Anag == '') {
+        proclamatori.push({
+            'Nome': $("#Nome").val(),
+            'Nome2': $("#Nome2").val(),
+            'Ind': $("#Ind").val(),
+            'D_Nasc': $("#D_Nasc").val(),
+            'D_Batt': $("#D_Batt").val(),
+            'Tel': $("#Tel").val(),
+            'Cel': $("#Cel").val(),
+            'Email': $("#Email").val(),
+            'Emerg': $("#Emerg").val(),
+            'S': $('input[name=S]:checked').val(),
+            'U_AP': ($('#U:checked').val() ?? '') + ($('#P:checked').val() ?? ''),
+            'SM_AN': ($('#SM:checked').val() ?? '') + ($('#AN:checked').val() ?? ''),
+            'PR_PS': ($('#PR:checked').val() ?? '') + ($('#PS:checked').val() ?? ''),
+            'Attivo': $('input[name=Attivo]:checked').val(),
+            'Gr': Number($('#Gr').find(":selected").val()),
             'Elimina': "0",
-        },
-        { 'id': parseInt($('#CP_Anag').val()) }
-    )
-    if (result.succ)
-        result.msg = 'Proclamatore ripristinato'
-    notifichePush(result)
-    location.reload();
-});
+            'id': new Date().getTime()
+        })
+    } else {
+        let n = proclamatori.findIndex((item) => item.id === Number(CP_Anag))
+        proclamatori[n].Nome = $("#Nome").val()
+        proclamatori[n].Nome2 = $("#Nome2").val()
+        proclamatori[n].Ind = $("#Ind").val()
+        proclamatori[n].D_Nasc = $("#D_Nasc").val()
+        proclamatori[n].D_Batt = $("#D_Batt").val()
+        proclamatori[n].Tel = $("#Tel").val()
+        proclamatori[n].Cel = $("#Cel").val()
+        proclamatori[n].Email = $("#Email").val()
+        proclamatori[n].Emerg = $("#Emerg").val()
+        proclamatori[n].S = $('input[name=S]:checked').val()
+        proclamatori[n].U_AP = ($('#U:checked').val() ?? '') + ($('#P:checked').val() ?? '')
+        proclamatori[n].SM_AN = ($('#SM:checked').val() ?? '') + ($('#AN:checked').val() ?? '')
+        proclamatori[n].PR_PS = ($('#PR:checked').val() ?? '') + ($('#PS:checked').val() ?? '')
+        proclamatori[n].Attivo = $('input[name=Attivo]:checked').val()
+        proclamatori[n].Gr = Number($('#Gr').find(":selected").val())
+    }
+    try {
+        result = await window.electronAPI.writeFile('anagrafica', proclamatori)
+    } catch (e) {
+        loadPage()
+        toast(new Date().getTime(), "rosso", e, 10000)
+        return
+    }
+    toast(new Date().getTime(), "verde", `Dati salvati`)
+    loadPage()
+}
+
+async function eliminaProclamatore(CP_Anag) {
+    $("#ModalProclamatore").modal("hide")
+    let n = proclamatori.findIndex((item) => item.id === Number(CP_Anag))
+    proclamatori[n].Elimina = '1'
+    try {
+        result = await window.electronAPI.writeFile('anagrafica', proclamatori)
+    } catch (e) {
+        loadPage()
+        toast(new Date().getTime(), "rosso", e, 10000)
+        return
+    }
+    toast(new Date().getTime(), "verde", `${proclamatori[n].Nome} è stato eliminato`)
+    loadPage()
+}
+
+async function ripristinaProclamatore(CP_Anag) {
+    $("#ModalProclamatore").modal("hide")
+    let n = proclamatori.findIndex((item) => item.id === Number(CP_Anag))
+    proclamatori[n].Elimina = '0'
+    try {
+        result = await window.electronAPI.writeFile('anagrafica', proclamatori)
+    } catch (e) {
+        loadPage()
+        toast(new Date().getTime(), "rosso", e, 10000)
+        return
+    }
+    toast(new Date().getTime(), "verde", `${proclamatori[n].Nome} è stato ripristinato`)
+    loadPage()
+}
 
 async function fpdf() {
     result = await window.electronAPI.fpdfAnagrafica()
-    notifichePush(result)
-    mostraNotifiche()
+    if (result.succ)
+        toast(new Date().getTime(), "verde", result.msg)
+    else
+        toast(new Date().getTime(), "rosso", result.msg)
 }

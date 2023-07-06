@@ -26,22 +26,57 @@
 
     <div class="container-fluid pt-3">
       <div class="row mb-3">
-        <div class="col-2">
-          <!--
-            <div class="mb-2">
-              <button id="upload" class="btn btn-primary">
-                Importa file XAMPP
-              </button>
-            </div>
-          -->
+        <div class="col-3">
+          <h4 class="text-center">Gestione Backup</h4>
           <div class="mb-2">
-            <button id="import" class="btn btn-primary">Importa file</button>
+            <button id="import" class="btn btn-primary" onclick="loadBackup()">
+              Importa backup
+            </button>
           </div>
           <div class="mb-2">
-            <button id="backup" class="btn btn-primary">Backup file</button>
+            <button id="backup" class="btn btn-primary" onclick="saveBackup()">
+              Crea backup
+            </button>
           </div>
         </div>
-        <div class="col"></div>
+        <div class="col">
+          <h4 class="text-center">Gestione rapporti per anno</h4>
+          <div class="px-5" id="tabAnni"></div>
+        </div>
+        <div class="col">
+          <h4 class="text-center">Gestione proclamatori disattivati</h4>
+          <div class="px-5" id="tabProcElim"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal fade" id="ModalAvviso">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <!-- Modal Header -->
+          <div class="modal-header border-bottom-0">
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+            ></button>
+          </div>
+          <!-- Modal body -->
+          <div class="modal-body text-center">
+            <span></span>
+          </div>
+          <!-- Modal footer -->
+          <div class="modal-footer pt-0 border-top-0">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+            >
+              Annulla
+            </button>
+            <button class="btn btn-danger" id="buttonModal">Elimina</button>
+          </div>
+        </div>
       </div>
     </div>
 

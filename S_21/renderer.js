@@ -3,22 +3,12 @@ var anno
 var proc
 var proclamatori
 var gruppi
+var rapporti
 var anni = [
     getAnnoTeocratico(),
     getAnnoTeocratico() - 1,
     getAnnoTeocratico() - 2
-];
-
-function getAnnoTeocratico() {
-    let data = new Date()
-    let primoSet = new Date(data.getFullYear() + "-09-01")
-    if (data < primoSet) {
-        return data.getFullYear()
-    }
-    if (data >= primoSet) {
-        return data.getFullYear() + 1
-    }
-}
+]
 
 $(window).resize(function () {
     marginBody()
@@ -30,10 +20,10 @@ $(document).ready(async function () {
     anni.forEach(function (anno, indice) {
         $('[name="selectAnno"]').append(`<option value="${anno}">${anno}</option>`)
     })
-    console.log(getAnno())
     $('[name="selectAnno"]').val(getAnno())
 
-    proclamatori = await window.electronAPI.getRows('anagrafica', { 'Elimina': '0' })
+    anagrafica = await window.electronAPI.readFile('anagrafica')
+    proclamatori = anagrafica.filter(item => item.Elimina == '0')
     proclamatori.sort(function (a, b) {
         if (a.Nome < b.Nome)
             return -1
@@ -57,23 +47,16 @@ $(document).ready(async function () {
                         <option value="pr">Pionieri regolari e speciali</option>`)
     $('[name="selectProc"]').val(sessionStorage.getItem('proc'))
 
-    visualS21()
-    mostraNotifiche()
-})
+    rapporti = await window.electronAPI.readFile('rapporti')
 
-$('[name="selectAnno"]').change(function () {
     visualS21()
-    sessionStorage.setItem('anno', $(this).val())
-})
-
-$('[name="selectProc"]').change(function () {
-    visualS21()
-    sessionStorage.setItem('proc', $(this).val())
 })
 
 async function visualS21() {
     anno = $('[name="selectAnno"]').val()
     id_proc = $('[name="selectProc"]').val()
+    sessionStorage.setItem('anno', anno)
+    sessionStorage.setItem('proc', id_proc)
     tot = { n: 0, Pubb: 0, Video: 0, Ore: 0, VU: 0, Studi: 0 }
     $('#div_cartolina').addClass('d-none')
     $('#buttonSingola').addClass('d-none')
@@ -102,7 +85,7 @@ async function visualS21() {
             $('#PR').html('<i class="bi bi-circle"></i>')
         } else {
             $('table thead tr th:eq(1)').html('Inc')
-            proc = proclamatori.find(item => item.id === Number(id_proc));
+            proc = proclamatori.find(item => item.id === Number(id_proc))
             $('#Nome').html(proc.Nome)
             $('#Nome2').html(proc.Nome2)
             if (proc.D_Nasc)
@@ -156,24 +139,22 @@ async function visualS21() {
         conta = 0
         for (indice = 0; indice < 12; indice++) {
             $(`table tbody tr:eq(${indice}) td:not(:eq(0))`).html('')
-            rapporto = undefined
             $(`table tbody tr:eq(${indice}) td:eq(${0})`).html(new Date(mesi[indice]).toLocaleString('it-IT', {
                 year: 'numeric',
                 month: 'long'
             }))
             if (!isNaN(id_proc)) {
-                rapporto = await window.electronAPI.getRows('rapporti',
-                    {
-                        'Mese': mesi[indice],
-                        'CE_Anag': Number(id_proc)
-                    })
+                rapporto = rapporti.filter(item => ((item.Mese == mesi[indice]) && (item.CE_Anag == Number(id_proc))))
                 rapporto = rapporto[0]
             } else {
-                rapporto = await window.electronAPI.sum('rapporti',
-                    {
-                        'Mese': mesi[indice],
-                        'Inc': id_proc,
-                    }, keys)
+                rapporti_mese = rapporti.filter(item => ((item.Mese == mesi[indice]) && (item.Inc == id_proc)))
+                rapporto = {}
+                rapporto.N = rapporti_mese.length
+                if (rapporti_mese.length != 0) {
+                    keys.forEach(function (key, indiceKeys) {
+                        rapporto[key] = rapporti_mese.map(item => item[key]).reduce((p, n) => p + n)
+                    })
+                }
             }
             if (rapporto) {
                 $(`table tbody tr:eq(${indice}) td:eq(${1})`).html(rapporto.Inc || rapporto.N)
@@ -194,7 +175,7 @@ async function visualS21() {
     }
 }
 
-$('#buttonSingola').click(async function fpdfSingola() {
+async function fpdfSingola() {
     if (!isNaN($('#selectProc').val()))
         proc = proclamatori.find(item => item.id === Number(id_proc))
     else {
@@ -208,13 +189,16 @@ $('#buttonSingola').click(async function fpdfSingola() {
         }
     }
     result = await window.electronAPI.fpdfS21Singola($('#selectAnno').val(), proc)
-    console.log(result)
-    notifichePush(result)
-    mostraNotifiche()
-})
+    if (result.succ)
+        toast(new Date().getTime(), "verde", result.msg)
+    else
+        toast(new Date().getTime(), "rosso", result.msg)
+}
 
-$('#buttonTutte').click(async function fpdfSingola() {
+async function fpdfTutte() {
     result = await window.electronAPI.fpdfS21Tutte($('#selectAnno').val())
-    notifichePush(result)
-    mostraNotifiche()
-})
+    if (result.succ)
+        toast(new Date().getTime(), "verde", result.msg)
+    else
+        toast(new Date().getTime(), "rosso", result.msg)
+}

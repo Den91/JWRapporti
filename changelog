@@ -22,3 +22,8 @@ v1.0.9
 
 v1.0.10
 - pdf anagrafica: mostrava anche proclamatori eliminati
+
+v1.1.0
+- pionieri: quota 50 ore
+- dai: possibilità di eliminare dati per anno e proclamatori senza rapporti
+- nuove funzioni per salvataggio dati in tutto il programma

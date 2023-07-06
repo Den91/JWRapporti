@@ -6,11 +6,21 @@ $(window).resize(function () {
     marginBody()
 })
 
+$("th").click(function () {
+    ordinaTabella(this);
+})
+
 $(document).ready(async function () {
     navbar("rapporti")
     $('[name="mese"]').val(getMese())
-    gruppi = await window.electronAPI.getAll('gruppi')
-    proclamatori = await window.electronAPI.getAll('anagrafica')
+    loadPage()
+})
+
+async function loadPage() {
+    mese = $('[name="mese"]').val()
+    sessionStorage.setItem('mese', mese)
+    gruppi = await window.electronAPI.readFile('gruppi')
+    proclamatori = await window.electronAPI.readFile('anagrafica')
     proclamatori.sort(function (a, b) {
         if (a.Nome < b.Nome)
             return -1
@@ -18,31 +28,18 @@ $(document).ready(async function () {
             return 1
         return 0
     })
-    visualRapporti($('[name="mese"]').val())
-    mostraNotifiche()
-})
-
-$("th").click(function () {
-    ordinaTabella(this);
-})
-
-$('[name="mese"]').change(function () {
-    visualRapporti($(this).val())
-    sessionStorage.setItem('mese', $(this).val())
-})
-
-async function visualRapporti(mese) {
     $("#FormRapporti").html(``)
     $("#TBodyRapporti").html('')
     $('#buttonPDF').addClass('d-none')
     if (mese != "") {
-        rapporti = await window.electronAPI.getRows('rapporti', { 'Mese': mese })
-        if (rapporti.length != 0) {
+        rapporti = await window.electronAPI.readFile('rapporti')
+        rapporti_mese = rapporti.filter(rapporto => rapporto.Mese == mese)
+        if (rapporti_mese.length != 0) {
             $('#buttonPDF').removeClass('d-none')
-            rapporti.forEach(function (rapporto, indice) {
+            rapporti_mese.forEach(function (rapporto, indice) {
                 proc = proclamatori.find(item => item.id === rapporto.CE_Anag)
                 $("#TBodyRapporti").append(`
-                    <tr onclick="modalProclamatore()">
+                    <tr>
                         <td class="nomeProc">${proc.Nome}</td>
                         <td class="text-center">${rapporto.Inc}</td>
                         <td class="text-center">${rapporto.Pubb || ""}</td>
@@ -59,10 +56,9 @@ async function visualRapporti(mese) {
     }
 }
 
-function modalRapporti() {
+function modalRapporti(mese) {
     $("#FormRapporti").html(``)
-    let date = new Date($('[name="mese"]').val());
-    $("#ModalRapportiTitle").html(`Rapporti - ${date.toLocaleString('it-IT', { month: 'long', year: 'numeric' })}`)
+    $("#ModalRapportiTitle").html(`Rapporti - ${new Date(mese).toLocaleString('it-IT', { month: 'long', year: 'numeric' })}`)
     gruppi.forEach(function (gruppo, indice) {
         $("#FormRapporti").append(`
             <div id="DivGruppo${gruppo.id}" class="d-none DivGruppi">
@@ -79,11 +75,12 @@ function modalRapporti() {
         <div id="DivEliminati" class="d-none DivGruppi">
             <h5>Eliminati</h5>
         </div>
-        `);
+        `)
+    rapporti_mese = rapporti.filter(rapporto => rapporto.Mese == mese)
     proclamatori.forEach(function (proclamatore, indice) {
-        rapporto = null
-        if (rapporti) {
-            rapporto = rapporti.find(item => item.CE_Anag === proclamatore.id)
+        var rapporto = null
+        if (rapporti_mese) {
+            rapporto = rapporti_mese.find(item => item.CE_Anag === proclamatore.id)
         }
         if (proclamatore.Elimina == 1) {
             if (rapporto) {
@@ -106,7 +103,6 @@ function modalRapporti() {
 }
 
 function htmlRapporto(proclamatore, rapporto) {
-    //onchange="convalida(this)"
     return `<div class="row g-2 mb-3">
         <input type="hidden" name="CP_Anag" value="${proclamatore.id}">
         <input type="hidden" name="CP_Rap" value="${rapporto ? rapporto.id : ""}">
@@ -119,8 +115,8 @@ function htmlRapporto(proclamatore, rapporto) {
                     class="form-select"
                     id="Inc-${proclamatore.id}" 
                     name="Inc[]" 
-                    value="" 
-                    
+                    value=""
+                    onchange="convalida(this)"
                 >
                     <option value=""></option>
                     <option value="p" ${rapporto ? rapporto.Inc == "p" ? "selected" : "" : ""}>p</option>
@@ -223,65 +219,79 @@ function htmlRapporto(proclamatore, rapporto) {
     </div>`
 }
 
-$('#SalvaRapporti').click(async function () {
+async function salvaRapporti() {
+    if ($('#FormRapporti .is-invalid').length > 0) {
+        //se ci sono errori, non salvare
+        $("#ModalRapporti").animate({
+            scrollTop: $('#FormRapporti .is-invalid').offset().top
+        }, 2000);
+        return
+    }
+    $("#ModalRapporti").modal("hide")
     $("[name='CP_Anag']").each(async function (indice, CP_Anag) {
         CP_Anag = $(CP_Anag).val()
         if ($("#Inc-" + CP_Anag).val() == "") {
             if ($(`[name='CP_Rap']:eq(${indice})`).val() != "") {
                 console.log('Cancella record')
-                result = await window.electronAPI.deleteRow(
-                    'rapporti',
-                    { 'id': parseInt($(`[name='CP_Rap']:eq(${indice})`).val()) }
-                )
+                let n = rapporti.findIndex((item) => item.id === Number($(`[name='CP_Rap']:eq(${indice})`).val()))
+                rapporti.splice(n, 1)
             }
         } else {
             if ($(`[name='CP_Rap']:eq(${indice})`).val() == "") {
                 console.log('Inserisci')
-                result = await window.electronAPI.insertTableContent(
-                    'rapporti',
-                    {
-                        'CE_Anag': parseInt(CP_Anag),
-                        'Mese': $('[name="mese"]').val(),
-                        'Inc': $('#Inc-' + CP_Anag).val(),
-                        'Pubb': parseInt($('#Pubb-' + CP_Anag).val()),
-                        "Video": parseInt($('#Video-' + CP_Anag).val()),
-                        "Ore": parseInt($('#Ore-' + CP_Anag).val()),
-                        "VU": parseInt($('#VU-' + CP_Anag).val()),
-                        "Studi": parseInt($('#Studi-' + CP_Anag).val()),
-                        "Note": $('#Note-' + CP_Anag).val(),
+                var id = new Date().getTime()
+                // controlla se l'id è già presente
+                for (let i = 0; i < rapporti.length; i++) {
+                    if (rapporti[i].id == id) {
+                        await sleep(2)
+                        id = new Date().getTime()
                     }
-                )
+                }
+                rapporti.push({
+                    'CE_Anag': Number(CP_Anag),
+                    'Mese': $('[name="mese"]').val(),
+                    'Inc': $('#Inc-' + CP_Anag).val(),
+                    'Pubb': Number($('#Pubb-' + CP_Anag).val()),
+                    "Video": Number($('#Video-' + CP_Anag).val()),
+                    "Ore": Number($('#Ore-' + CP_Anag).val()),
+                    "VU": Number($('#VU-' + CP_Anag).val()),
+                    "Studi": Number($('#Studi-' + CP_Anag).val()),
+                    "Note": $('#Note-' + CP_Anag).val(),
+                    'id': id
+                })
             } else {
                 console.log('Modifica')
-                result = await window.electronAPI.updateRow(
-                    'rapporti',
-                    {
-                        'CE_Anag': parseInt(CP_Anag),
-                        'Mese': $('[name="mese"]').val(),
-                        'Inc': $('#Inc-' + CP_Anag).val(),
-                        'Pubb': parseInt($('#Pubb-' + CP_Anag).val()),
-                        "Video": parseInt($('#Video-' + CP_Anag).val()),
-                        "Ore": parseInt($('#Ore-' + CP_Anag).val()),
-                        "VU": parseInt($('#VU-' + CP_Anag).val()),
-                        "Studi": parseInt($('#Studi-' + CP_Anag).val()),
-                        "Note": $('#Note-' + CP_Anag).val(),
-                    },
-                    { 'id': parseInt($(`[name='CP_Rap']:eq(${indice})`).val()) }
-                )
+                let n = rapporti.findIndex((item) => item.id === Number($(`[name='CP_Rap']:eq(${indice})`).val()))
+                rapporti[n].CE_Anag = Number(CP_Anag)
+                rapporti[n].Mese = $('[name="mese"]').val()
+                rapporti[n].Inc = $('#Inc-' + CP_Anag).val()
+                rapporti[n].Pubb = Number($('#Pubb-' + CP_Anag).val())
+                rapporti[n].Video = Number($('#Video-' + CP_Anag).val())
+                rapporti[n].Ore = Number($('#Ore-' + CP_Anag).val())
+                rapporti[n].VU = Number($('#VU-' + CP_Anag).val())
+                rapporti[n].Studi = Number($('#Studi-' + CP_Anag).val())
+                rapporti[n].Note = $('#Note-' + CP_Anag).val()
             }
         }
     })
-    if (result.succ)
-        result.msg = 'Rapporti salvati'
-    notifichePush(result)
-})
+    try {
+        result = await window.electronAPI.writeFile('rapporti', rapporti)
+    } catch (e) {
+        loadPage()
+        toast(new Date().getTime(), "rosso", e, 10000)
+        return
+    }
+    toast(new Date().getTime(), "verde", `Dati salvati`)
+    loadPage()
+}
 
-$('#buttonPDF').click(async function fpdfSingola() {
+async function fpdfRapporti() {
     result = await window.electronAPI.fpdfRapporti($('#mese').val())
-    console.log(result)
-    notifichePush(result)
-    mostraNotifiche()
-})
+    if (result.succ)
+        toast(new Date().getTime(), "verde", result.msg)
+    else
+        toast(new Date().getTime(), "rosso", result.msg)
+}
 
 async function convalida(dato) {
     input = dato.id.split('-')[0]
@@ -327,6 +337,14 @@ async function convalida(dato) {
                 $("#Note-" + CP_Anag).val(`Irregolare ${irr}° mese`)
             }
         }
+        if ($("#Inc-" + CP_Anag).val() == "") {
+            $("#Pubb-" + CP_Anag).val('')
+            $("#Video-" + CP_Anag).val('')
+            $("#Ore-" + CP_Anag).val('')
+            $("#VU-" + CP_Anag).val('')
+            $("#Studi-" + CP_Anag).val('')
+            $("#Note-" + CP_Anag).val('')
+        }
     }
 }
 
@@ -337,20 +355,21 @@ async function irregolare(id) {
     let mese = new Date($('[name="mese"]').val())
 
     while (irr) {
-        mese.setMonth(mese.getMonth() - 1);
-        rapporto = await window.electronAPI.getRows('rapporti',
-            {
-                'Mese': `${mese.toLocaleString('it-IT', {
-                    year: 'numeric'
-                })}-${mese.toLocaleString('it-IT', {
-                    month: '2-digit'
-                })}`,
-                'CP_Anag': id
-            })
-        if (rapporto.Inc == "ir") {
-            x++
-        } else {
+        mese.setMonth(mese.getMonth() - 1)
+        rapporto = rapporti.find(item => (
+            (item.CE_Anag == id) &&
+            (item.Mese == `${mese.toLocaleString('it-IT', { year: 'numeric' })}-${mese.toLocaleString('it-IT', { month: '2-digit' })}`)
+        ))
+        console.log(`${mese.toLocaleString('it-IT', { year: 'numeric' })}-${mese.toLocaleString('it-IT', { month: '2-digit' })}`)
+        console.log(rapporto)
+        if (rapporto == undefined) {
             irr = false
+        } else {
+            if (rapporto.Inc == "ir") {
+                x++
+            } else {
+                irr = false
+            }
         }
     }
     return x

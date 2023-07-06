@@ -390,22 +390,23 @@
           <div class="modal-footer" id="footModalProclamatore">
             <button
               class="btn btn-success order-2"
-              type="submit"
               name="SalvaProclamatore"
-              form="FormProclamatore"
               id="SalvaProclamatore"
+              onclick="salvaProclamatore(CP_Anag.value)"
             >
               Salva
             </button>
             <button
               class="btn btn-danger d-none order-1"
               id="EliminaProclamatore"
+              onclick="eliminaProclamatore(CP_Anag.value)"
             >
               <i class="bi bi-trash3"></i>
             </button>
             <button
               class="btn btn-info d-none order-1"
               id="RipristinaProclamatore"
+              onclick="ripristinaProclamatore(CP_Anag.value)"
             >
               Ripristina
             </button>
@@ -429,7 +430,7 @@
           </div>
           <!-- Modal body -->
           <div class="modal-body">
-            <form method="post" id="FormCO" class="mb-0">
+            <form id="FormCO" class="mb-0">
               <div class="row">
                 <div class="col mb-3 mb-lg-0">
                   <div class="form-floating">
@@ -472,10 +473,9 @@
           <div class="modal-footer" id="footModalCO">
             <button
               class="btn btn-success order-2"
-              type="submit"
               name="SalvaCO"
-              form="FormCO"
               id="SalvaCO"
+              onclick="salvaCO()"
             >
               Salva
             </button>
@@ -536,14 +536,17 @@
           <div class="modal-footer" id="footModalGruppo">
             <button
               class="btn btn-success order-2"
-              type="submit"
               name="SalvaGruppo"
-              form="FormGruppo"
               id="SalvaGruppo"
+              onclick="salvaGruppo(CP_Gruppo.value)"
             >
               Salva
             </button>
-            <button class="btn btn-danger d-none order-1" id="EliminaGruppo">
+            <button
+              class="btn btn-danger d-none order-1"
+              id="EliminaGruppo"
+              onclick="eliminaGruppo(CP_Gruppo.value)"
+            >
               <i class="bi bi-trash3"></i>
             </button>
           </div>

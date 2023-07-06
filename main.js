@@ -7,6 +7,7 @@ const tabelle = ['anagrafica', 'gruppi', 'rapporti', 'presenti', 'sorvegliante']
 const FPDF = require('node-fpdf')
 const { autoUpdater } = require('electron-updater');
 const log = require('electron-log');
+const PDFWindowModule = require('electron-pdf-window')
 let updateWindow, mainWindow
 
 var pack = null
@@ -32,8 +33,11 @@ if (platform === 'win32') {
 app.whenReady().then(() => {
     creaTabelle()
     ipcMain.handle('login', login)
-    ipcMain.handle('importFile', importFile)
-    ipcMain.handle('backupFile', backupFile)
+    ipcMain.handle('readFile', readFile)
+    ipcMain.handle('writeFile', writeFile)
+    ipcMain.handle('loadBackup', loadBackup)
+    ipcMain.handle('saveBackup', saveBackup)
+    /*
     ipcMain.handle('getAll', getAll)
     ipcMain.handle('getRows', getRows)
     ipcMain.handle('insertTableContent', insertTableContent)
@@ -41,6 +45,7 @@ app.whenReady().then(() => {
     ipcMain.handle('deleteRow', deleteRow)
     ipcMain.handle('count', count)
     ipcMain.handle('sum', sum)
+    */
     ipcMain.handle('fpdfAnagrafica', fpdfAnagrafica)
     ipcMain.handle('fpdfS21Singola', fpdfS21Singola)
     ipcMain.handle('fpdfS21Tutte', fpdfS21Tutte)
@@ -53,8 +58,11 @@ app.whenReady().then(() => {
         },
     })
     mainWindow.maximize();
-    //win.loadFile('./home/index.html')
-    mainWindow.loadFile('./login/index.html')
+    if (app.isPackaged) {
+        mainWindow.loadFile('./login/index.html')
+    } else {
+        mainWindow.loadFile('./home/index.html')
+    }
     mainWindow.setTitle("JW Rapporti " + pack.version);
     autoUpdater.checkForUpdates();
 })
@@ -108,13 +116,59 @@ function login(event, username, password) {
         return false
 }
 
+function creaTabelle() {
+    // crea le tabelle se non esistono
+    tabelle.forEach(function (tabella) {
+        db.createTable(tabella, (succ, msg) => {
+            if (!succ) {
+                //console.log(`La tabella ${tabella} non è stata creata: ${msg}`)
+            }
+        })
+    })
+}
+
+async function readFile(event, tableName) {
+    let fname = path.join(userData, tableName + '.json')
+    let exists = fs.existsSync(fname)
+
+    if (exists) {
+        try {
+            let table = JSON.parse(fs.readFileSync(fname))
+            return table[tableName]
+        } catch (e) {
+            return []
+        }
+    } else {
+        throw 'Table file does not exist!'
+    }
+}
+
+async function writeFile(event, tableName, tableObject) {
+    let fname = path.join(userData, tableName + '.json')
+    let exists = fs.existsSync(fname)
+
+    if (exists) {
+        try {
+            let obj = new Object();
+            obj[tableName] = tableObject
+            fs.writeFileSync(fname, JSON.stringify(obj, null, 2), (err) => {
+                throw err
+            })
+            return "File write"
+        } catch (e) {
+            throw e
+        }
+    } else {
+        throw 'Table file does not exist!'
+    }
+}
+
 async function fpdfAnagrafica() {
     const { canceled, filePaths } = await dialog.showOpenDialog({ properties: ['openDirectory'] })
     if (canceled) {
         return
     } else {
         const pdf = new FPDF('P', 'mm', 'A4');
-        pdf.SetFont('Arial', '', 10);
         pdf.SetTextColor(0, 0, 0);
         pdf.SetAutoPageBreak(1, 3);
 
@@ -122,12 +176,12 @@ async function fpdfAnagrafica() {
         pdf.SetY(3);
 
         border = 1;
-        row = 4.6;
+        row = 4.2;
 
-        co = await getAll(null, 'sorvegliante')
+        co = await readFile(null, 'sorvegliante')
         co = co[0]
 
-        gruppi = await getAll(null, 'gruppi')
+        gruppi = await readFile(null, 'gruppi')
         gruppi.sort(function (a, b) {
             return a.Num - b.Num
         })
@@ -135,8 +189,7 @@ async function fpdfAnagrafica() {
         for (gruppo of gruppi) {
             pdf.AddPage();
             pdf.SetFont('Arial', '', 12);
-            pdf.Cell(204, row, `Gruppo N.${gruppo["Num"]} ${gruppo["Sorv_Gr"]}`, border, 0, 'C');
-            pdf.Ln(row);
+            pdf.Cell(204, row + 1, `Gruppo N.${gruppo["Num"]} ${gruppo["Sorv_Gr"]}`, border, 1, 'C');
             pdf.SetFont('Arial', '', 10);
             if (co != null) {
                 pdf.Cell(68, row, "Sorvegliante: " + unescapeHtml(co.Nome_CO), border, 0, 'C');
@@ -145,7 +198,9 @@ async function fpdfAnagrafica() {
                 pdf.Ln(row + 1);
             }
             c = 1;
-            proclamatori = await getRows(null, 'anagrafica', { 'Gr': gruppo.id, 'Elimina': '0' })
+            proclamatori = await readFile(null, 'anagrafica')
+            proclamatori = proclamatori.filter(item => ((item.Gr == gruppo.id) && (item.Elimina == '0')))
+
             proclamatori.sort(function (a, b) {
                 if (a.Nome < b.Nome)
                     return -1
@@ -213,7 +268,14 @@ async function fpdfAnagrafica() {
         }
         try {
             pdf.Output('F', path.join(filePaths[0], 'anagrafica.pdf'))
-            shell.showItemInFolder(path.join(filePaths[0], 'anagrafica.pdf'));
+            //shell.showItemInFolder(path.join(filePaths[0], 'anagrafica.pdf'));
+            /*
+            const PDFWindow = new PDFWindowModule({
+                width: 1024,
+                height: 768
+            })
+            PDFWindow.loadURL(path.join(filePaths[0], 'anagrafica.pdf'))
+            */
             return { succ: true, msg: "File creato" }
         } catch (e) {
             return { succ: false, msg: 'Errore: ' + e }
@@ -226,8 +288,9 @@ async function fpdfRapporti(event, mese) {
     if (canceled) {
         return
     } else {
-        proclamatori = await getAll(null, 'anagrafica')
-        rapporti = await getRows(null, 'rapporti', { 'Mese': mese })
+        proclamatori = await readFile(null, 'anagrafica')
+        rapporti = await readFile(null, 'rapporti')
+        rapporti = rapporti.filter(item => item.Mese == mese)
 
         rapporti.forEach(function (rapporto, indice) {
             let proc = proclamatori.find(item => item.id === rapporto.CE_Anag)
@@ -561,24 +624,23 @@ async function cartolinaFPDF(pdf, anno, proc, link_pdf) {
     var somma = { 'Pubb': 0, 'Video': 0, 'Ore': 0, 'VU': 0, 'Studi': 0 }
     var conta = 0
     var keys = ['Pubb', 'Video', 'Ore', 'VU', 'Studi']
+    rapporti = await readFile(null, 'rapporti')
     for (let mese of mesi) {
         rapporto = undefined
         if (isNaN(proc.id)) {
-            rapporto = await sum(null, 'rapporti',
-                {
-                    'Mese': mese,
-                    'Inc': proc.id,
-                }, keys)
-        } else {
-            rapporto = await getRows(null, 'rapporti',
-                {
-                    'Mese': mese,
-                    'CE_Anag': proc.id
+            rapporti_mese = rapporti.filter(item => ((item.Mese == mese) && (item.Inc == proc.id)))
+            rapporto = {}
+            rapporto.N = rapporti_mese.length
+            if (rapporti_mese.length != 0) {
+                keys.forEach(function (key, indiceKeys) {
+                    rapporto[key] = rapporti_mese.map(item => item[key]).reduce((p, n) => p + n)
                 })
+            }
+        } else {
+            rapporto = rapporti.filter(item => ((item.Mese == mese) && (item.CE_Anag == proc.id)))
             rapporto = rapporto[0]
         }
-        m = new Date(mese)
-        pdf.Cell(36, 7, m.toLocaleString("it-IT", { year: 'numeric', month: 'long' }), 1, 0, 'L');
+        pdf.Cell(36, 7, new Date(mese).toLocaleString("it-IT", { year: 'numeric', month: 'long' }), 1, 0, 'L');
         if (rapporto) {
             pdf.Cell(18, 7, rapporto.Inc || rapporto.N, 1, 0, 'C');
             if ((rapporto.hasOwnProperty('N') && rapporto.N != 0) || rapporto.hasOwnProperty('Inc')) {
@@ -648,12 +710,14 @@ async function fpdfS21Tutte(event, anno) {
         let mm_colonna = 48;
         let mm_x = 0;
         let link_pdf = []
-        gruppi = await getAll(null, 'gruppi')
+        gruppi = await readFile(null, 'gruppi')
         gruppi.sort(function (a, b) {
             return a.Num - b.Num
         })
 
-        pionieri = await getRows(null, 'anagrafica', { PR_PS: 'PR', Attivo: '1', Elimina: '0' })
+        anagrafica = await readFile(null, 'anagrafica')
+
+        pionieri = anagrafica.filter(item => ((item.PR_PS == 'PR') && (item.Attivo == '1') && (item.Elimina == '0')))
         pionieri.sort(function (a, b) {
             if (a.Nome < b.Nome)
                 return -1
@@ -665,8 +729,11 @@ async function fpdfS21Tutte(event, anno) {
         let proclamatori = []
         let n = 0
         for (gruppo of gruppi) {
-            proclamatori[n] = await getRows(null,
-                'anagrafica', { PR_PS: '', Attivo: '1', Elimina: '0', Gr: gruppo.id })
+            proclamatori[n] = anagrafica.filter(item => (
+                (item.PR_PS == '') &&
+                (item.Attivo == '1') &&
+                (item.Elimina == '0') &&
+                (item.Gr == gruppo.id)))
             proclamatori[n].sort(function (a, b) {
                 if (a.Nome < b.Nome)
                     return -1
@@ -677,7 +744,7 @@ async function fpdfS21Tutte(event, anno) {
             n++
         }
 
-        inattivi = await getRows(null, 'anagrafica', { Attivo: '0', Elimina: '0' })
+        inattivi = anagrafica.filter(item => ((item.Attivo == '0') && (item.Elimina == '0')))
         inattivi.sort(function (a, b) {
             if (a.Nome < b.Nome)
                 return -1
@@ -831,8 +898,9 @@ async function fpdfS88(event, anno) {
         mesi = mesiAnnoTeocratico(anno)
         sommaI = contaI = 0
         sommaF = contaF = 0
+        presenti_tutti = await readFile(null, 'presenti')
         for (x = 0; x < 12; x++) {
-            presenti = await getRows(null, 'presenti', { 'Mese': mesi[x] })
+            presenti = presenti_tutti.filter(item => item.Mese == mesi[x])
             totI = cI = 0
             totF = cF = 0
             if (presenti.length > 0) {
@@ -902,6 +970,7 @@ async function fpdfS88(event, anno) {
 }
 
 //import da xampp
+/*
 async function importaFile() {
     const { canceled, filePaths } = await dialog.showOpenDialog()
     if (canceled) {
@@ -1004,7 +1073,7 @@ async function importaFile() {
                     if (err) console.log('ERROR: ' + err);
                 });
             }
-            */
+            
             return {
                 succ: false, msg: `Impossibile importare dati. <br> 
                     Operazione annullata. <br> Errore${e[1]}: ${e[0]}`
@@ -1014,7 +1083,7 @@ async function importaFile() {
         //controllo sulle chiavi primarie
         let doppioni = false
         for (tabella of tabelle) {
-            let tab = await getAll(null, tabella)
+            let tab = await readFile(null, tabella)
             var valueArr = tab.map(function (item) { return item.id });
             var isDuplicate = valueArr.some(function (item, idx) {
                 if (valueArr.indexOf(item) != idx)
@@ -1041,8 +1110,9 @@ async function importaFile() {
         }
     }
 }
+*/
 
-async function importFile() {
+async function loadBackup() {
     const { canceled, filePaths } = await dialog.showOpenDialog()
     if (canceled) {
         return
@@ -1055,7 +1125,7 @@ async function importFile() {
         let dati = JSON.parse(fs.readFileSync(filePaths[0]))
         try {
             for (tabella of tabelle) {
-                console.log(dati[tabella])
+                //console.log(dati[tabella])
                 fs.writeFileSync(path.join(userData, tabella + '.json'),
                     JSON.stringify({ [tabella]: dati[tabella] }, null, 2), (err) => {
                         throw err;
@@ -1082,7 +1152,7 @@ async function importFile() {
     }
 }
 
-async function backupFile() {
+async function saveBackup() {
     const { canceled, filePaths } = await dialog.showOpenDialog({ properties: ['openDirectory'] })
     if (canceled) {
         return
@@ -1112,17 +1182,7 @@ async function backupFile() {
     }
 }
 
-function creaTabelle() {
-    // crea le tabelle se non esistono
-    tabelle.forEach(function (tabella) {
-        db.createTable(tabella, (succ, msg) => {
-            if (!succ) {
-                //console.log(`La tabella ${tabella} non è stata creata: ${msg}`)
-            }
-        })
-    })
-}
-
+/*
 async function getAll(event, table) {
     var result
     db.getAll(table, function (succ, data) {
@@ -1321,6 +1381,7 @@ async function count(event, table) {
     })
     return result
 }
+*/
 
 function unescapeHtml(safe) {
     return safe

@@ -28,7 +28,13 @@
       <div class="row mb-3">
         <div class="col-2">
           <div class="form-floating">
-            <input type="month" class="form-control" name="mese" value="" />
+            <input
+              type="month"
+              class="form-control"
+              name="mese"
+              value=""
+              onchange="loadPage()"
+            />
             <label>Mese</label>
           </div>
         </div>
@@ -241,14 +247,17 @@
           <div class="modal-footer" id="footModalGruppo">
             <button
               class="btn btn-success order-2"
-              type="submit"
               name="SalvaPresenti"
-              form="FormPresenti"
               id="SalvaPresenti"
+              onclick="salvaPresenti()"
             >
               Salva
             </button>
-            <button class="btn btn-danger d-none order-1" id="EliminaPresenti">
+            <button
+              class="btn btn-danger d-none order-1"
+              id="EliminaPresenti"
+              onclick="eliminaPresenti()"
+            >
               <i class="bi bi-trash3"></i>
             </button>
           </div>

@@ -14,16 +14,12 @@ $(window).resize(function () {
 $(document).ready(async function () {
     navbar("S-1")
     $('[name="mese"]').val(getMese())
-    visualS1($('[name="mese"]').val())
-    mostraNotifiche()
+    visualS1()
 })
 
-$('[name="mese"]').change(function () {
-    visualS1($(this).val())
-    sessionStorage.setItem('mese', $(this).val())
-})
-
-async function visualS1(mese) {
+async function visualS1() {
+    mese = $('[name="mese"]').val()
+    sessionStorage.setItem('mese', mese)
     p = { n: 0, Pubb: 0, Video: 0, Ore: 0, VU: 0, Studi: 0 }
     pa = { n: 0, Pubb: 0, Video: 0, Ore: 0, VU: 0, Studi: 0 }
     pr = { n: 0, Pubb: 0, Video: 0, Ore: 0, VU: 0, Studi: 0 }
@@ -32,8 +28,9 @@ async function visualS1(mese) {
     ir = 0
     $("#CardTotali").addClass("d-none")
     if (mese != "") {
-        rapporti = await window.electronAPI.getRows('rapporti', { 'Mese': mese, })
-        rapporti.forEach(function (rap, indice) {
+        rapporti = await window.electronAPI.readFile('rapporti')
+        rapporti_mese = rapporti.filter(rapporto => rapporto.Mese == mese)
+        rapporti_mese.forEach(function (rap, indice) {
             if (rap.Inc == 'p') {
                 p.n++
                 keys.forEach(function (key, indice) {
@@ -119,14 +116,15 @@ async function visualS1(mese) {
             </tr>`)
         $("#proc_attivi").html(tot.n + ir)
 
-        presenti = await window.electronAPI.getRows('presenti', { 'Mese': mese })
+        presenti = await window.electronAPI.readFile('presenti')
+        presenti_mese = presenti.filter(presenti => presenti.Mese == mese)
         media_presenti = 0
-        if (presenti.length != 0) {
+        if (presenti_mese.length != 0) {
             t = 0
             c = 0
             for (x = 1; x < 6; x++) {
-                if (presenti[0]['f' + x] > 0) {
-                    t += Number(presenti[0]['f' + x])
+                if (presenti_mese[0]['f' + x] > 0) {
+                    t += Number(presenti_mese[0]['f' + x])
                     c++
                 }
             }

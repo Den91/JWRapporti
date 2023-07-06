@@ -5,18 +5,7 @@ var anni = [
     getAnnoTeocratico(),
     getAnnoTeocratico() - 1,
     getAnnoTeocratico() - 2
-];
-
-function getAnnoTeocratico() {
-    let data = new Date()
-    let primoSet = new Date(data.getFullYear() + "-09-01")
-    if (data < primoSet) {
-        return data.getFullYear()
-    }
-    if (data >= primoSet) {
-        return data.getFullYear() + 1
-    }
-}
+]
 
 $(window).resize(function () {
     marginBody()
@@ -30,16 +19,11 @@ $(document).ready(async function () {
     })
     $('[name="selectAnno"]').val(getAnno())
     visualS88()
-    mostraNotifiche()
-})
-
-$('[name="selectAnno"]').change(function () {
-    visualS88()
-    sessionStorage.setItem('anno', $(this).val())
 })
 
 async function visualS88() {
     anno = $('[name="selectAnno"]').val()
+    sessionStorage.setItem('anno', anno)
     $('#DivS_88').addClass('d-none')
     $('#buttonS_88').addClass('d-none')
     if (anno != '') {
@@ -57,13 +41,14 @@ async function visualS88() {
                 year: 'numeric',
                 month: 'long'
             }))
-            presenti = await window.electronAPI.getRows('presenti', { 'Mese': mesi[x] })
-            if (presenti.length != 0) {
+            presenti = await window.electronAPI.readFile('presenti')
+            presenti_mese = presenti.filter(item => item.Mese == mesi[x])
+            if (presenti_mese.length != 0) {
                 totI = cI = 0
                 totF = cF = 0
                 for (key of keysI) {
-                    if (presenti[0][key] != null && presenti[0][key] != '') {
-                        totI += Number(presenti[0][key])
+                    if (presenti_mese[0][key] != null && presenti_mese[0][key] != '') {
+                        totI += Number(presenti_mese[0][key])
                         cI++
                     }
                 }
@@ -75,8 +60,8 @@ async function visualS88() {
                 $(`table:eq(0) tbody tr:eq(${x}) td:eq(${2})`).html(totI)
                 $(`table:eq(0) tbody tr:eq(${x}) td:eq(${3})`).html(Number(totI / cI).toFixed(0))
                 for (key of keysF) {
-                    if (presenti[0][key] != null && presenti[0][key] != '') {
-                        totF += Number(presenti[0][key])
+                    if (presenti_mese[0][key] != null && presenti_mese[0][key] != '') {
+                        totF += Number(presenti_mese[0][key])
                         cF++
                     }
                 }
@@ -101,8 +86,10 @@ async function visualS88() {
     }
 }
 
-$('#buttonS_88').click(async function () {
+async function fpdfS88() {
     result = await window.electronAPI.fpdfS88($('#selectAnno').val())
-    notifichePush(result)
-    mostraNotifiche()
-})
+    if (result.succ)
+        toast(new Date().getTime(), "verde", result.msg)
+    else
+        toast(new Date().getTime(), "rosso", result.msg)
+}

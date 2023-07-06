@@ -34,11 +34,16 @@
               name="mese"
               id="mese"
               value=""
+              onchange="loadPage()"
             />
             <label>Mese</label>
           </div>
           <div class="d-grid">
-            <button id="buttonPDF" class="btn btn-sm btn-primary d-none mb-2">
+            <button
+              id="buttonPDF"
+              class="btn btn-sm btn-primary d-none mb-2"
+              onclick="fpdfRapporti()"
+            >
               <i class="bi bi-file-pdf-fill"></i> Stampa rapporti
             </button>
           </div>
@@ -50,7 +55,7 @@
               <button
                 type="button"
                 class="btn btn-sm btn-success"
-                onclick="modalRapporti()"
+                onclick="modalRapporti(mese.value)"
               >
                 <i class="bi bi-pencil-square"></i> Compila
               </button>
@@ -101,13 +106,16 @@
           <div class="modal-footer" id="footModalGruppo">
             <button
               class="btn btn-success order-2"
-              type="submit"
               id="SalvaRapporti"
-              form="FormRapporti"
+              onclick="salvaRapporti()"
             >
               Salva
             </button>
-            <button class="btn btn-danger d-none order-1" id="EliminaRapporti">
+            <button
+              class="btn btn-danger d-none order-1"
+              id="EliminaRapporti"
+              onclick="eliminaRapporti()"
+            >
               <i class="bi bi-trash3"></i>
             </button>
           </div>

@@ -65,6 +65,29 @@ function marginBody() {
     document.getElementById("navbar").offsetHeight + "px";
 }
 
+function toast(id, colore, testo, tempo = 5000) {
+  switch (colore) {
+    case "verde":
+      colore = "success"
+      break
+
+    case "rosso":
+      colore = "danger"
+      break
+  }
+  $(".toast-container").append(`
+  <div class="toast border-0" id="${id}" data-bs-delay="${tempo}">
+    <div class="d-flex alert alert-${colore} m-0 p-0">
+      <div class="toast-body my-3 ms-1">
+        ${testo}
+      </div>
+      <button type="button" class="btn-close ms-auto me-2 mt-2" data-bs-dismiss="toast" aria-label="Close"></button>
+    </div>
+  </div>`)
+  $(`#${id}`).toast("show");
+}
+
+/*
 function mostraNotifiche() {
   if (sessionStorage.getItem('notifiche')) {
     while (notifica = notifichePop()) {
@@ -77,6 +100,7 @@ function mostraNotifiche() {
     //console.log(JSON.parse(sessionStorage.getItem('notifiche')))
   }
 }
+
 
 function notifichePush(nuovaNotifica) {
   let notifiche = new Array()
@@ -124,6 +148,7 @@ function toastKo(testo) {
       </div>`)
   $("#ToastKo").toast("show");
 }
+*/
 
 function getMese() {
   m = sessionStorage.getItem('mese')
@@ -150,29 +175,39 @@ function getAnno() {
 }
 
 function ordinaTabella(th) {
-  console.log(th.asc)
   $(th).siblings().children("span").html(``);
   var table = $(th).parents("table").eq(0);
   var rows = table
     .find("tr:gt(0)")
     .toArray()
     .sort(function (a, b) {
-      var valA = $(a).children("td").eq($(th).index()).text();
-      var valB = $(b).children("td").eq($(th).index()).text();
-      return $.isNumeric(valA) && $.isNumeric(valB)
-        ? valA - valB
-        : valA.toString().localeCompare(valB);
-    });
+      var valA = $(a).children("td").eq($(th).index()).text()
+      var valB = $(b).children("td").eq($(th).index()).text()
+      return isNaN(valA) && isNaN(valB) ?
+        valA.toUpperCase().localeCompare(valB) :
+        valA - valB
+    })
   th.asc = !th.asc;
-  $(th).children("span").html(`<i class="bi bi-sort-alpha-down"></i>`);
+  $(th).children("span").html(`<i class="bi bi-sort-alpha-down"></i>`)
   if (!th.asc) {
     $(th)
       .children("span")
-      .html(`<i class="bi bi-sort-alpha-down-alt"></i>`);
+      .html(`<i class="bi bi-sort-alpha-down-alt"></i>`)
     rows = rows.reverse();
   }
   for (var i = 0; i < rows.length; i++) {
     table.append(rows[i]);
+  }
+}
+
+function getAnnoTeocratico() {
+  let data = new Date()
+  let primoSet = new Date(data.getFullYear() + "-09-01")
+  if (data < primoSet) {
+    return data.getFullYear()
+  }
+  if (data >= primoSet) {
+    return data.getFullYear() + 1
   }
 }
 

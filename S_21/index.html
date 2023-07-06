@@ -32,11 +32,17 @@
               class="form-select"
               name="selectAnno"
               id="selectAnno"
+              onchange="visualS21()"
             ></select>
             <label>Anno teocratico</label>
           </div>
           <div class="form-floating mb-2">
-            <select class="form-select" name="selectProc" id="selectProc">
+            <select
+              class="form-select"
+              name="selectProc"
+              id="selectProc"
+              onchange="visualS21()"
+            >
               <option></option>
               <optgroup label="Attivi"></optgroup>
               <optgroup label="Inattivi"></optgroup>
@@ -48,10 +54,15 @@
             <button
               id="buttonSingola"
               class="btn btn-sm btn-primary d-none mb-2"
+              onclick="fpdfSingola()"
             >
               <i class="bi bi-file-pdf-fill"></i> Stampa S-21
             </button>
-            <button id="buttonTutte" class="btn btn-sm btn-primary d-none mb-2">
+            <button
+              id="buttonTutte"
+              class="btn btn-sm btn-primary d-none mb-2"
+              onclick="fpdfTutte()"
+            >
               <i class="bi bi-file-pdf-fill"></i> Stampa tutti S-21
             </button>
           </div>
