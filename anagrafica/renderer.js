@@ -208,6 +208,7 @@ async function visualProclamatori() {
             return 1
         return 0
     })
+    p = pr = ps = inat = 0
     //console.log(proclamatori)
     proclamatori.forEach(function (proc, indice) {
         if (proc.Elimina == 0) {
@@ -216,6 +217,15 @@ async function visualProclamatori() {
                 var gruppoTxt = `${gruppo.Num} - ${gruppo.Sorv_Gr}`
             } else {
                 gruppoTxt = ""
+            }
+            if (proc.PR_PS == 'PR') {
+                pr++
+            } else if (proc.PR_PS == 'PS') {
+                ps++
+            } else if (proc.Attivo == '0') {
+                inat++
+            } else {
+                p++
             }
             $("#TBodyProc").append(`
                 <tr onclick="modalProclamatore('${proc["id"]}', 0)">
@@ -238,6 +248,14 @@ async function visualProclamatori() {
                 </tr>`)
         }
     })
+    if (p > 0)
+        $("#p").html(`&nbsp&nbsp&nbspProclamatori: ${p}`)
+    if (pr > 0)
+        $("#pr").html(`&nbsp- PR: ${pr}`)
+    if (ps > 0)
+        $("#ps").html(`&nbsp- PS: ${ps}`)
+    if (inat > 0)
+        $("#inat").html(`&nbsp- Inattivi: ${inat}`)
 }
 
 function modalProclamatore(CP_Anag, eliminato) {

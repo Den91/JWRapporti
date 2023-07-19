@@ -29,9 +29,7 @@
         <div class="col-5">
           <div class="card h-100">
             <div class="card-header d-flex">
-              <span class="me-auto my-auto">
-                Sorvegliante di circoscrizione
-              </span>
+              <b class="me-auto my-auto"> Sorvegliante di circoscrizione </b>
               <button
                 type="button"
                 id="buttonCO"
@@ -47,7 +45,7 @@
         <div class="col">
           <div class="card h-100">
             <div class="card-header d-flex">
-              <span class="me-auto my-auto">Gruppi di servizio</span>
+              <b class="me-auto my-auto">Gruppi di servizio</b>
               <button
                 type="button"
                 class="btn btn-sm btn-success px-3"
@@ -67,7 +65,11 @@
         <div class="col">
           <div class="card">
             <div class="card-header d-flex">
-              <span class="me-auto my-auto">Proclamatori</span>
+              <b class="my-auto">Anagrafica</b>
+              <span class="my-auto" id="p"></span>
+              <span class="my-auto" id="pr"></span>
+              <span class="my-auto" id="ps"></span>
+              <span class="my-auto me-auto" id="inat"></span>
               <button
                 type="button"
                 class="btn btn-sm btn-primary me-2"
@@ -109,7 +111,7 @@
         <div class="col">
           <div class="card">
             <div class="card-header d-flex">
-              <span class="me-auto my-auto">Proclamatori eliminati</span>
+              <b class="me-auto my-auto">Proclamatori eliminati</b>
             </div>
             <div class="card-body p-2 pt-0">
               <div class="table-responsive">
@@ -492,7 +494,7 @@
             <h4 class="modal-title">Gruppo</h4>
             <button
               type="button"
-              class="btn-close"
+              class="btn-close position-absolute top-0 end-0"
               data-bs-dismiss="modal"
               aria-label="Close"
             ></button>

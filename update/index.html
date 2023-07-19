@@ -25,20 +25,38 @@
     </style>
   </head>
 
-  <body class="d-flex justify-content-center align-items-center">
-    <div class="d-flex flex-column w-100">
-      <div id="messaggio" class="align-self-center text-center mb-5">
-        Aggiornamento disponibile<br />Download in corso
+  <body>
+    <div class="d-flex flex-row-reverse" id="divCloseButton">
+      <button
+        type="button"
+        class="btn-close mt-2 me-2"
+        onclick="closeModalWindow()"
+      ></button>
+    </div>
+    <div class="h-100">
+      <div class="d-flex flex-column justify-content-evenly w-100 h-50">
+        <div id="messaggio" class="align-self-center text-center"></div>
+        <div id="divPulsanti" class="d-none align-self-center">
+          <button
+            type="button"
+            id="button-download"
+            class="btn btn-primary"
+            onclick="openBrowserUpdate()"
+          >
+            Download
+          </button>
+        </div>
       </div>
-
-      <div id="download" class="d-none align-self-center">
-        Scaricati <span id="transferred"></span> di <span id="total"></span>
-      </div>
-      <div id="barraCompleta" class="d-none progress mx-5" role="progressbar">
-        <div
-          id="barraProgresso"
-          class="progress-bar progress-bar-striped progress-bar-animated"
-        ></div>
+      <div class="d-none">
+        <div id="download" class="d-none align-self-center">
+          Scaricati <span id="transferred"></span> di <span id="total"></span>
+        </div>
+        <div id="barraCompleta" class="d-none progress mx-5" role="progressbar">
+          <div
+            id="barraProgresso"
+            class="progress-bar progress-bar-striped progress-bar-animated"
+          ></div>
+        </div>
       </div>
     </div>
     <script src="renderer.js"></script>

@@ -1,20 +1,20 @@
 {
   "name": "jwrapporti",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Rapporti",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "increment-version": "versiony package.json --patch && git add . && git commit -m 'new version' && git push",
-    "build": "electron-builder build --mac --win --publish never",
-    "deploy": "electron-builder build --win --publish always"
+    "build-all": "electron-builder build --mac --win --publish never",
+    "build-mac": "electron-builder build --mac --publish never",
+    "build-win": "electron-builder build --win --publish never",
+    "deploy": "electron-builder build --mac --win --publish always"
   },
   "author": "Sita Dennis",
   "license": "ISC",
   "devDependencies": {
-    "electron": "^22.0.2",
-    "electron-builder": "^23.6.0",
-    "versiony": "^2.0.1"
+    "electron": "^25.2.0",
+    "electron-builder": "^23.6.0"
   },
   "dependencies": {
     "bootstrap": "^5.2.2",
@@ -46,7 +46,7 @@
       }
     ],
     "mac": {
-      "target": "dmg"
+      "target": "pkg"
     },
     "win": {
       "target": [

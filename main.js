@@ -2,14 +2,14 @@ const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron')
 const path = require('path')
 const fs = require('fs')
 const os = require('os')
-const db = require("electron-db")
-const tabelle = ['anagrafica', 'gruppi', 'rapporti', 'presenti', 'sorvegliante']
+//const db = require("electron-db")
 const FPDF = require('node-fpdf')
 const { autoUpdater } = require('electron-updater');
 const log = require('electron-log');
-const PDFWindowModule = require('electron-pdf-window')
+//const PDFWindowModule = require('electron-pdf-window')
 let updateWindow, mainWindow
 
+const tabelle = ['anagrafica', 'gruppi', 'rapporti', 'presenti', 'sorvegliante']
 var pack = null
 try {
     pack = require('./package.json')
@@ -51,24 +51,31 @@ app.whenReady().then(() => {
     ipcMain.handle('fpdfS21Tutte', fpdfS21Tutte)
     ipcMain.handle('fpdfS88', fpdfS88)
     ipcMain.handle('fpdfRapporti', fpdfRapporti)
+    ipcMain.on('closeModalWindow', closeModalWindow)
+    ipcMain.handle('openBrowserUpdate', openBrowserUpdate)
+
     mainWindow = new BrowserWindow({
         icon: '/images/icon.png',
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
         },
     })
+    mainWindow.setTitle("JW Rapporti " + pack.version)
     mainWindow.maximize();
     if (app.isPackaged) {
         mainWindow.loadFile('./login/index.html')
+        if (platform === 'win32') {
+            autoUpdater.checkForUpdates()
+        } else if (platform === 'darwin') {
+            updateMacos()
+        }
     } else {
         mainWindow.loadFile('./home/index.html')
     }
-    mainWindow.setTitle("JW Rapporti " + pack.version);
-    autoUpdater.checkForUpdates();
 })
 
 autoUpdater.on('checking-for-update', () => {
-    log.info("Checking for update.")
+    //log.info("Checking for update.")
 })
 autoUpdater.on('update-available', (info) => {
     updateWindow = new BrowserWindow({
@@ -83,31 +90,95 @@ autoUpdater.on('update-available', (info) => {
         },
     })
     updateWindow.loadFile('./update/index.html')
-    updateWindow.show()
-    log.info('Update available.');
+    updateWindow.webContents.send('update',
+        {
+            state: 'available',
+        }
+    )
+    updateWindow.once('ready-to-show', () => {
+        updateWindow.show()
+    })
+    //log.info('Update available.');
 })
 autoUpdater.on('update-not-available', (info) => {
-    log.info('Update not available.');
+    //log.info('Update not available.');
 })
 autoUpdater.on('error', (err) => {
-    log.info('Error in auto-updater. ' + err);
-    updateWindow.webContents.send('messaggioUpdate', 'Errore: ' + err);
+    //log.info('Error in auto-updater. ' + err);
+    updateWindow.webContents.send('update',
+        {
+            state: 'error',
+            error: err,
+        }
+    )
     updateWindow.closable = true;
 })
-autoUpdater.on('download-progress', (progressObj) => {
+autoUpdater.on('download-progress', (progress) => {
     /*
     let log_message = "Download speed: " + progressObj.bytesPerSecond;
     log_message = log_message + ' - Downloaded ' + progressObj.percent + '%';
     log_message = log_message + ' (' + progressObj.transferred + "/" + progressObj.total + ')';
     */
-    updateWindow.webContents.send('progressoUpdate', progressObj)
+    updateWindow.webContents.send('update',
+        {
+            state: 'progress',
+            progress: progress,
+        }
+    )
 })
 autoUpdater.on('update-downloaded', (info) => {
-    log.info('Update downloaded');
-    updateWindow.webContents.send('messaggioUpdate', `Aggiornamento scaricato<br />
-    Verrà installato alla chiusura dell'applicazione`)
+    //log.info('Update downloaded');
+    updateWindow.webContents.send('update',
+        {
+            state: 'downloaded',
+        }
+    )
     updateWindow.closable = true;
-});
+})
+
+function updateMacos() {
+    fetch("https://api.github.com/repos/Den91/JWRapporti/tags")
+        .then(res => res.json())
+        .then(latest => {
+            updateVersion = latest[0].name.slice(1)
+            packVersion = '1.0.0'
+            console.log(updateVersion)
+            console.log(packVersion)
+            compare = updateVersion.localeCompare(packVersion, undefined, { numeric: true, sensitivity: 'base' })
+            if (compare == 1) {
+                updateWindow = new BrowserWindow({
+                    parent: mainWindow,
+                    width: 600,
+                    height: 300,
+                    modal: true,
+                    show: true,
+                    closable: true,
+                    webPreferences: {
+                        preload: path.join(__dirname, 'preload.js'),
+                    },
+                })
+                updateWindow.loadFile('./update/index.html')
+                updateWindow.once('ready-to-show', () => {
+                    updateWindow.webContents.send('update',
+                        {
+                            state: 'mac-update',
+                            link: `https://github.com/Den91/JWRapporti/releases/latest/download/jwrapporti-${updateVersion}.pkg`,
+                        }
+                    )
+                    updateWindow.show()
+                })
+            }
+        })
+        .catch(err => { throw err })
+}
+
+function closeModalWindow() {
+    updateWindow.close()
+}
+
+function openBrowserUpdate(event, url) {
+    shell.openExternal(url)
+}
 
 function login(event, username, password) {
     if (username.toUpperCase() == "SEGRETARIO" && password == "Rapporti1914")
@@ -117,13 +188,21 @@ function login(event, username, password) {
 }
 
 function creaTabelle() {
-    // crea le tabelle se non esistono
     tabelle.forEach(function (tabella) {
-        db.createTable(tabella, (succ, msg) => {
-            if (!succ) {
-                //console.log(`La tabella ${tabella} non è stata creata: ${msg}`)
+        fname = path.join(userData, tabella + '.json');
+        let exists = fs.existsSync(fname);
+        if (!exists) {
+            let obj = new Object()
+            obj[tabella] = []
+            try {
+                fs.writeFileSync(fname, JSON.stringify(obj, null, 2), (err) => {
+                    throw err
+                })
+            } catch (e) {
+                console.log("Errore creazione file tabella" + e)
+                return
             }
-        })
+        }
     })
 }
 
