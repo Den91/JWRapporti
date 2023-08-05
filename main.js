@@ -2,7 +2,6 @@ const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron')
 const path = require('path')
 const fs = require('fs')
 const os = require('os')
-//const db = require("electron-db")
 const FPDF = require('node-fpdf')
 const { autoUpdater } = require('electron-updater');
 const log = require('electron-log');
@@ -37,15 +36,6 @@ app.whenReady().then(() => {
     ipcMain.handle('writeFile', writeFile)
     ipcMain.handle('loadBackup', loadBackup)
     ipcMain.handle('saveBackup', saveBackup)
-    /*
-    ipcMain.handle('getAll', getAll)
-    ipcMain.handle('getRows', getRows)
-    ipcMain.handle('insertTableContent', insertTableContent)
-    ipcMain.handle('updateRow', updateRow)
-    ipcMain.handle('deleteRow', deleteRow)
-    ipcMain.handle('count', count)
-    ipcMain.handle('sum', sum)
-    */
     ipcMain.handle('fpdfAnagrafica', fpdfAnagrafica)
     ipcMain.handle('fpdfS21Singola', fpdfS21Singola)
     ipcMain.handle('fpdfS21Tutte', fpdfS21Tutte)
@@ -141,7 +131,7 @@ function updateMacos() {
         .then(res => res.json())
         .then(latest => {
             updateVersion = latest[0].name.slice(1)
-            packVersion = '1.0.0'
+            packVersion = pack.version
             console.log(updateVersion)
             console.log(packVersion)
             compare = updateVersion.localeCompare(packVersion, undefined, { numeric: true, sensitivity: 'base' })
@@ -530,7 +520,7 @@ async function fpdfRapporti(event, mese) {
     }
 }
 
-async function cartolinaFPDF(pdf, anno, proc, link_pdf) {
+async function cartolinaFPDF(pdf, proc, cartolina, link_pdf) {
     if (link_pdf != null) {
         pdf.SetLink(link_pdf);
     }
@@ -699,32 +689,16 @@ async function cartolinaFPDF(pdf, anno, proc, link_pdf) {
     pdf.Cell(48, 7, "Note", 1, 0, 'L');
     pdf.Ln(7);
 
-    var mesi = mesiAnnoTeocratico(anno)
     var somma = { 'Pubb': 0, 'Video': 0, 'Ore': 0, 'VU': 0, 'Studi': 0 }
     var conta = 0
     var keys = ['Pubb', 'Video', 'Ore', 'VU', 'Studi']
-    rapporti = await readFile(null, 'rapporti')
-    for (let mese of mesi) {
-        rapporto = undefined
-        if (isNaN(proc.id)) {
-            rapporti_mese = rapporti.filter(item => ((item.Mese == mese) && (item.Inc == proc.id)))
-            rapporto = {}
-            rapporto.N = rapporti_mese.length
-            if (rapporti_mese.length != 0) {
-                keys.forEach(function (key, indiceKeys) {
-                    rapporto[key] = rapporti_mese.map(item => item[key]).reduce((p, n) => p + n)
-                })
-            }
-        } else {
-            rapporto = rapporti.filter(item => ((item.Mese == mese) && (item.CE_Anag == proc.id)))
-            rapporto = rapporto[0]
-        }
-        pdf.Cell(36, 7, new Date(mese).toLocaleString("it-IT", { year: 'numeric', month: 'long' }), 1, 0, 'L');
-        if (rapporto) {
-            pdf.Cell(18, 7, rapporto.Inc || rapporto.N, 1, 0, 'C');
-            if ((rapporto.hasOwnProperty('N') && rapporto.N != 0) || rapporto.hasOwnProperty('Inc')) {
-                conta++
-            }
+    console.log(cartolina)
+    for (let rapporto of cartolina) {
+        pdf.Cell(36, 7,
+            new Date(rapporto.Mese).toLocaleString("it-IT", { year: 'numeric', month: 'long' }), 1, 0, 'L');
+        pdf.Cell(18, 7, rapporto.Inc || rapporto.N, 1, 0, 'C');
+        if ((rapporto.hasOwnProperty('N') && rapporto.N != 0) || rapporto.hasOwnProperty('Inc')) {
+            conta++
             for (key of keys) {
                 somma[key] += Number(rapporto[key])
                 pdf.Cell(18, 7, rapporto[key] || '', 1, 0, 'C');
@@ -770,7 +744,43 @@ async function fpdfS21Singola(event, anno, proc) {
         pdf.SetY(3);
         pdf.AddPage();
 
-        await cartolinaFPDF(pdf, anno, proc, null)
+        rapporti = await readFile(null, 'rapporti')
+        gruppi = await readFile(null, 'gruppi')
+        anagrafica = await readFile(null, 'anagrafica')
+        var mesi = mesiAnnoTeocratico(anno)
+        var keys = ['Pubb', 'Video', 'Ore', 'VU', 'Studi']
+
+        cartolina = []
+        for (let mese of mesi) {
+            rapporto = { 'Mese': mese }
+            if (isNaN(proc.id)) {
+                if (proc.id.length > 2) {
+                    gruppoStraniero = proc.id.split('-')
+                    procGruppo = anagrafica.filter(item => item.Gr == gruppoStraniero[1]).map(item => item.id)
+                    rapporti_mese = rapporti.filter(item => (
+                        (item.Mese == mese) &&
+                        (item.Inc == gruppoStraniero[0]) &&
+                        (procGruppo.includes(item.CE_Anag))
+                    ))
+                } else {
+                    rapporti_mese = rapporti.filter(item => ((item.Mese == mese) && (item.Inc == proc.id)))
+                }
+                rapporto.N = rapporti_mese.length
+                if (rapporti_mese.length != 0) {
+                    keys.forEach(function (key, indiceKeys) {
+                        rapporto[key] = rapporti_mese.map(item => item[key]).reduce((p, n) => p + n)
+                    })
+                }
+            } else {
+                rap = rapporti.filter(item => ((item.Mese == mese) && (item.CE_Anag == proc.id)))[0]
+                if (rap != undefined)
+                    rapporto = rap
+            }
+            cartolina.push(rapporto)
+        }
+
+        await cartolinaFPDF(pdf, proc, cartolina, null)
+
         try {
             pdf.Output('F', path.join(filePaths[0], `S-21 ${proc.Nome} ${anno}.pdf`))
             shell.showItemInFolder(path.join(filePaths[0], `S-21 ${proc.Nome} ${anno}.pdf`));
@@ -786,6 +796,8 @@ async function fpdfS21Tutte(event, anno) {
     if (canceled) {
         return
     } else {
+        var mesi = mesiAnnoTeocratico(anno)
+        var keys = ['Pubb', 'Video', 'Ore', 'VU', 'Studi']
         let mm_colonna = 48;
         let mm_x = 0;
         let link_pdf = []
@@ -890,42 +902,196 @@ async function fpdfS21Tutte(event, anno) {
         pdf.Cell(mm_colonna * 4, 10, "Totali", 1, 0, 'C');
         pdf.Ln(10);
         pdf.SetFont('Arial', '', 10);
-        link_pdf_p = pdf.AddLink();
+
+        gruppi.forEach(function (gruppo, indice) {
+            if (gruppo.hasOwnProperty('straniero')) {
+                if (gruppo.straniero) {
+                    link_pdf_tot['p-' + gruppo.id] = pdf.AddLink();
+                    pdf.Cell(mm_colonna, 8, 'Proclamatori gr. ' + gruppo.Sorv_Gr, 0, 0, 'L', false,
+                        link_pdf_tot['p-' + gruppo.id])
+
+                    link_pdf_tot['pa-' + gruppo.id] = pdf.AddLink();
+                    pdf.Cell(mm_colonna, 8, 'P. ausiliari gr. ' + gruppo.Sorv_Gr, 0, 0, 'L', false,
+                        link_pdf_tot['pa-' + gruppo.id])
+
+                    link_pdf_tot['pr-' + gruppo.id] = pdf.AddLink();
+                    pdf.Cell(mm_colonna, 8, 'P. regolari gr. ' + gruppo.Sorv_Gr, 0, 0, 'L', false,
+                        link_pdf_tot['pr-' + gruppo.id])
+                    pdf.Ln(8)
+                }
+            }
+        })
+
+        link_pdf_p = pdf.AddLink()
         pdf.Cell(mm_colonna, 8, 'Proclamatori', 0, 0, 'L', false, link_pdf_p);
-        link_pdf_pa = pdf.AddLink();
+        link_pdf_pa = pdf.AddLink()
         pdf.Cell(mm_colonna, 8, 'Pionieri Ausiliari', 0, 0, 'L', false, link_pdf_pa);
-        link_pdf_pr = pdf.AddLink();
+        link_pdf_pr = pdf.AddLink()
         pdf.Cell(mm_colonna, 8, 'Pionieri Regolari e Speciali', 0, 0, 'L', false, link_pdf_pr);
-        pdf.Ln(8);
+        pdf.Ln(8)
 
         for (riga of pionieri) {
-            pdf.AddPage();
-            pdf.SetY(3);
-            await cartolinaFPDF(pdf, anno, riga, link_pdf[riga["id"]]);
+            pdf.AddPage()
+            pdf.SetY(3)
+            cartolina = []
+            for (let mese of mesi) {
+                rapporto = { 'Mese': mese }
+                rap = rapporti.filter(item => ((item.Mese == mese) && (item.CE_Anag == proc.id)))[0]
+                if (rap != undefined)
+                    rapporto = rap
+                cartolina.push(rapporto)
+            }
+
+            await cartolinaFPDF(pdf, riga, cartolina, link_pdf[riga["id"]]);
         }
         for (proc_filter of proclamatori) {
             for (riga of proc_filter) {
-                pdf.AddPage();
-                pdf.SetY(3);
-                await cartolinaFPDF(pdf, anno, riga, link_pdf[riga["id"]]);
+                pdf.AddPage()
+                pdf.SetY(3)
+                cartolina = []
+                for (let mese of mesi) {
+                    rapporto = { 'Mese': mese }
+                    rap = rapporti.filter(item => ((item.Mese == mese) && (item.CE_Anag == proc.id)))[0]
+                    if (rap != undefined)
+                        rapporto = rap
+                    cartolina.push(rapporto)
+                }
+                await cartolinaFPDF(pdf, riga, cartolina, link_pdf[riga["id"]]);
             }
         }
         for (riga of inattivi) {
-            pdf.AddPage();
-            pdf.SetY(3);
-            await cartolinaFPDF(pdf, anno, riga, link_pdf[riga["id"]]);
+            pdf.AddPage()
+            pdf.SetY(3)
+            cartolina = []
+            for (let mese of mesi) {
+                rapporto = { 'Mese': mese }
+                rap = rapporti.filter(item => ((item.Mese == mese) && (item.CE_Anag == proc.id)))[0]
+                if (rap != undefined)
+                    rapporto = rap
+                cartolina.push(rapporto)
+            }
+            await cartolinaFPDF(pdf, riga, cartolina, link_pdf[riga["id"]]);
         }
 
-        pdf.AddPage();
-        pdf.SetY(3);
+        for (gruppo in gruppi) {
+            if (gruppo.hasOwnProperty('straniero')) {
+                if (gruppo.straniero) {
+                    pdf.AddPage()
+                    pdf.SetY(3)
+                    cartolina = []
+                    for (let mese of mesi) {
+                        rapporto = { 'Mese': mese }
+                        procGruppo = anagrafica.filter(item => item.Gr == gruppo.id).map(item => item.id)
+                        rapporti_mese = rapporti.filter(item => (
+                            (item.Mese == mese) &&
+                            (item.Inc == 'p') &&
+                            (procGruppo.includes(item.CE_Anag))
+                        ))
+                        rapporto.N = rapporti_mese.length
+                        if (rapporti_mese.length != 0) {
+                            keys.forEach(function (key, indiceKeys) {
+                                rapporto[key] = rapporti_mese.map(item => item[key]).reduce((p, n) => p + n)
+                            })
+                        }
+                        cartolina.push(rapporto)
+                    }
+                    await cartolinaFPDF(pdf, { id: 'p', Nome: 'Proclamatori gr. ' + gruppo.Sorv_Gr }, cartolina,
+                        link_pdf_tot['p-' + gruppo.id])
+
+                    pdf.AddPage()
+                    pdf.SetY(3)
+                    cartolina = []
+                    for (let mese of mesi) {
+                        rapporto = { 'Mese': mese }
+                        procGruppo = anagrafica.filter(item => item.Gr == gruppo.id).map(item => item.id)
+                        rapporti_mese = rapporti.filter(item => (
+                            (item.Mese == mese) &&
+                            (item.Inc == 'pa') &&
+                            (procGruppo.includes(item.CE_Anag))
+                        ))
+                        rapporto.N = rapporti_mese.length
+                        if (rapporti_mese.length != 0) {
+                            keys.forEach(function (key, indiceKeys) {
+                                rapporto[key] = rapporti_mese.map(item => item[key]).reduce((p, n) => p + n)
+                            })
+                        }
+                        cartolina.push(rapporto)
+                    }
+                    await cartolinaFPDF(pdf, { id: 'pa', Nome: 'P. ausiliari gr. ' + gruppo.Sorv_Gr }, cartolina,
+                        link_pdf_tot['pa-' + gruppo.id])
+
+                    pdf.AddPage()
+                    pdf.SetY(3)
+                    cartolina = []
+                    for (let mese of mesi) {
+                        rapporto = { 'Mese': mese }
+                        procGruppo = anagrafica.filter(item => item.Gr == gruppo.id).map(item => item.id)
+                        rapporti_mese = rapporti.filter(item => (
+                            (item.Mese == mese) &&
+                            (item.Inc == 'pr') &&
+                            (procGruppo.includes(item.CE_Anag))
+                        ))
+                        rapporto.N = rapporti_mese.length
+                        if (rapporti_mese.length != 0) {
+                            keys.forEach(function (key, indiceKeys) {
+                                rapporto[key] = rapporti_mese.map(item => item[key]).reduce((p, n) => p + n)
+                            })
+                        }
+                        cartolina.push(rapporto)
+                    }
+                    await cartolinaFPDF(pdf, { id: 'pr', Nome: 'P. regolari gr. ' + gruppo.Sorv_Gr }, cartolina,
+                        link_pdf_tot['pr-' + gruppo.id])
+                    link_pdf_tot['pr-' + gruppo.id] = pdf.AddLink();
+                }
+            }
+        }
+
+        pdf.AddPage()
+        pdf.SetY(3)
+        cartolina = []
+        for (let mese of mesi) {
+            rapporto = { 'Mese': mese }
+            rapporti_mese = rapporti.filter(item => ((item.Mese == mese) && (item.Inc == proc.id)))
+            rapporto.N = rapporti_mese.length
+            if (rapporti_mese.length != 0) {
+                keys.forEach(function (key, indiceKeys) {
+                    rapporto[key] = rapporti_mese.map(item => item[key]).reduce((p, n) => p + n)
+                })
+            }
+            cartolina.push(rapporto)
+        }
         await cartolinaFPDF(pdf, anno, { id: 'p', Nome: "Proclamatori" }, link_pdf_p);
 
-        pdf.AddPage();
-        pdf.SetY(3);
+        pdf.AddPage()
+        pdf.SetY(3)
+        cartolina = []
+        for (let mese of mesi) {
+            rapporto = { 'Mese': mese }
+            rapporti_mese = rapporti.filter(item => ((item.Mese == mese) && (item.Inc == proc.id)))
+            rapporto.N = rapporti_mese.length
+            if (rapporti_mese.length != 0) {
+                keys.forEach(function (key, indiceKeys) {
+                    rapporto[key] = rapporti_mese.map(item => item[key]).reduce((p, n) => p + n)
+                })
+            }
+            cartolina.push(rapporto)
+        }
         await cartolinaFPDF(pdf, anno, { id: 'pa', Nome: "Pionieri Ausiliari" }, link_pdf_pa);
 
-        pdf.AddPage();
-        pdf.SetY(3);
+        pdf.AddPage()
+        pdf.SetY(3)
+        cartolina = []
+        for (let mese of mesi) {
+            rapporto = { 'Mese': mese }
+            rapporti_mese = rapporti.filter(item => ((item.Mese == mese) && (item.Inc == proc.id)))
+            rapporto.N = rapporti_mese.length
+            if (rapporti_mese.length != 0) {
+                keys.forEach(function (key, indiceKeys) {
+                    rapporto[key] = rapporti_mese.map(item => item[key]).reduce((p, n) => p + n)
+                })
+            }
+            cartolina.push(rapporto)
+        }
         await cartolinaFPDF(pdf, anno, { id: 'pr', Nome: "Pionieri Regolari" }, link_pdf_pr);
 
         try {
@@ -1158,7 +1324,7 @@ async function importaFile() {
                     Operazione annullata. <br> Errore${e[1]}: ${e[0]}`
             }
         }
-
+ 
         //controllo sulle chiavi primarie
         let doppioni = false
         for (tabella of tabelle) {
@@ -1260,207 +1426,6 @@ async function saveBackup() {
         }
     }
 }
-
-/*
-async function getAll(event, table) {
-    var result
-    db.getAll(table, function (succ, data) {
-        // succ - boolean, tells if the call is successful
-        // data - array of objects that represents the rows.
-        result = data
-    })
-    return result
-}
-
-async function getRows(event, table, select) {
-    var result
-    db.getRows(table, select, (succ, data) => {
-        // succ - boolean, tells if the call is successful
-        result = data
-    })
-    return result
-}
-
-function sum(event, tableName, where, fields) {
-
-    var fname = path.join(userData, tableName + '.json')
-    let exists = fs.existsSync(fname);
-    let whereKeys;
-
-    // Check if where is an object
-    if (Object.prototype.toString.call(where) === "[object Object]") {
-        // Check for number of keys
-        whereKeys = Object.keys(where);
-        if (whereKeys === 0) {
-            return { succ: false, msg: "There are no conditions passed to the WHERE clause." }
-        }
-    } else {
-        return { succ: false, msg: "WHERE clause should be an object." }
-    }
-
-    // Check if the json file exists, if it is, parse it.
-    if (exists) {
-        try {
-            let table = JSON.parse(fs.readFileSync(fname));
-            let rows = table[tableName];
-            let somma = { 'N': 0 }
-            for (let key of fields) {
-                somma[key] = 0;
-            }
-
-            for (let i = 0; i < rows.length; i++) {
-                let matched = 0; // Number of matched complete where clause
-                for (var j = 0; j < whereKeys.length; j++) {
-                    // Test if there is a matched key with where clause
-                    if (rows[i].hasOwnProperty(whereKeys[j])) {
-                        if (rows[i][whereKeys[j]] === where[whereKeys[j]]) {
-                            matched++;
-                        }
-                    }
-                }
-
-                // Check if all conditions in the WHERE clause are matched
-                if (matched === whereKeys.length) {
-                    somma['N']++
-                    for (key of fields) {
-                        somma[key] += rows[i][key]
-                    }
-                }
-            }
-
-            return somma
-        } catch (e) {
-            return { succ: false, msg: e.toString() }
-        }
-    } else {
-        return { succ: false, msg: 'Table file does not exist!' }
-    }
-}
-
-async function insertTableContent(event, tableName, array) {
-    function sleep(ms) {
-        return new Promise(resolve => setTimeout(resolve, ms));
-    }
-
-    let fname = path.join(userData, tableName + '.json');
-    let exists = fs.existsSync(fname);
-    let tableRow = array
-    if (exists) {
-        // Table | json parsed
-        let table = JSON.parse(fs.readFileSync(fname));
-
-        let date = new Date()
-        var id = date.getTime()
-        // controlla se l'id è già presente
-        let rows = table[tableName];
-        for (let i = 0; i < rows.length; i++) {
-            if (rows[i].id == id) {
-                await sleep(2)
-                let date = new Date()
-                id = date.getTime()
-            }
-        }
-
-        tableRow.id = id;
-        table[tableName].push(tableRow);
-        try {
-            fs.writeFileSync(fname, JSON.stringify(table, null, 2), (err) => {
-            })
-            return { succ: true, msg: 'Dati inseriti', id: id }
-        } catch (e) {
-            return { succ: false, msg: 'Errore scrittura file' }
-        }
-    }
-    return { succ: false, msg: 'Tabella inesistente' }
-}
-
-async function updateRow(event, tableName, set, where) {
-    //console.log(set)
-    //console.log(where)
-    let fname = path.join(userData, tableName + '.json');
-    let exists = fs.existsSync(fname);
-    let whereKeys = Object.keys(where);
-    let setKeys = Object.keys(set);
-
-    if (exists) {
-        let table = JSON.parse(fs.readFileSync(fname));
-        let rows = table[tableName];
-
-        let nbRowsMatched = 0;
-        let nbKeysMatchedPerRow = 0;
-        let rowsMatchedIndexes = [];
-
-        for (var i = 0; i < rows.length; i++) {
-            nbKeysMatchedPerRow = 0;
-            for (var j = 0; j < whereKeys.length; j++) {
-                // Test if there is a matched key with where clause and single row of table
-                if (rows[i].hasOwnProperty(whereKeys[j])) {
-                    if (rows[i][whereKeys[j]] == where[whereKeys[j]]) {
-                        nbKeysMatchedPerRow++;
-                    }
-                }
-            }
-            if (nbKeysMatchedPerRow > 0) {
-                nbRowsMatched++;
-                rowsMatchedIndexes.push(i);
-            }
-        }
-        if (nbRowsMatched > 0) {
-            // All field from where clause are present in this particular
-            // row of the database table
-            try {
-                for (var k = 0; k < rowsMatchedIndexes.length; k++) {
-                    var rowToUpdate = rows[rowsMatchedIndexes[k]];
-                    for (var l = 0; l < setKeys.length; l++) {
-                        var keyToUpdate = setKeys[l];
-                        rowToUpdate[keyToUpdate] = set[keyToUpdate];
-                    }
-                }
-
-                // Create a new object and pass the rows
-                let obj = new Object();
-                obj[tableName] = rows;
-
-                // Write the object to json file
-                try {
-                    fs.writeFileSync(fname, JSON.stringify(obj, null, 2), (err) => {
-                    })
-                    return { succ: true, msg: nbRowsMatched + " righe aggiornate" }
-                } catch (e) {
-                    return { succ: false, msg: 'File non salvato' }
-                }
-
-            } catch (e) {
-                return { succ: false, msg: e.toString() }
-            }
-        } else {
-            return { succ: false, msg: "Valore non trovato" }
-        }
-    } else {
-        return { succ: false, msg: "Tabella inesistente" }
-    }
-}
-
-function deleteRow(event, table, where) {
-    var result
-    db.deleteRow(table, where, (succ, msg) => {
-        if (succ) {
-            result = { succ: true, msg: 'Dati eliminati' }
-        } else {
-            result = { succ: false, msg: 'Errore: ' + msg }
-        }
-    });
-    return result
-}
-
-async function count(event, table) {
-    var result
-    db.count(table, (succ, data) => {
-        result = { succ: succ, data: data }
-    })
-    return result
-}
-*/
 
 function unescapeHtml(safe) {
     return safe

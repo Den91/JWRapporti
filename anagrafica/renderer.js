@@ -130,6 +130,7 @@ function modalGruppo(CP_Gruppo) {
         $('#CP_Gruppo').val(CP_Gruppo);
         $("#Num").val(parseInt(gruppo.Num));
         $("#Sorv_Gr").val(gruppo.Sorv_Gr);
+        $("#straniero").prop('checked', gruppo.straniero)
     }
     $("#ModalGruppo").modal("show")
 }
@@ -140,12 +141,14 @@ async function salvaGruppo(CP_Gruppo) {
         gruppi.push({
             'Num': $("#Num").val(),
             'Sorv_Gr': $("#Sorv_Gr").val(),
+            'straniero': $("#straniero").prop('checked'),
             'id': new Date().getTime()
         })
     } else {
         let n = gruppi.findIndex((item) => item.id === Number(CP_Gruppo))
         gruppi[n].Num = $("#Num").val()
         gruppi[n].Sorv_Gr = $("#Sorv_Gr").val()
+        gruppi[n].straniero = $("#straniero").prop('checked')
     }
     try {
         result = await window.electronAPI.writeFile('gruppi', gruppi)

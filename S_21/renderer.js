@@ -39,12 +39,25 @@ $(document).ready(async function () {
             $('optgroup[label="Inattivi"]').append(`
                 <option value="${proclamatore.id}">${proclamatore.Nome}</option>`)
     })
+    gruppi = await window.electronAPI.readFile('gruppi')
+    gruppi.forEach(function (gruppo, indice) {
+        if (gruppo.hasOwnProperty('straniero')) {
+            if (gruppo.straniero) {
+                $('optgroup[label="Totali"]').append(`
+                    <option value="p-${gruppo.id}">Proclamatori gr. ${gruppo.Sorv_Gr}</option>`)
+                $('optgroup[label="Totali"]').append(`
+                    <option value="pa-${gruppo.id}">P. ausiliari gr. ${gruppo.Sorv_Gr}</option>`)
+                $('optgroup[label="Totali"]').append(`
+                    <option value="pr-${gruppo.id}">P. regolari gr. ${gruppo.Sorv_Gr}</option>`)
+            }
+        }
+    })
     $('optgroup[label="Totali"]').append(`
                         <option value="p">Proclamatori</option>`)
     $('optgroup[label="Totali"]').append(`
-                        <option value="pa">Pionieri ausiliari</option>`)
+                        <option value="pa">P. ausiliari</option>`)
     $('optgroup[label="Totali"]').append(`
-                        <option value="pr">Pionieri regolari e speciali</option>`)
+                        <option value="pr">P. regolari e speciali</option>`)
     $('[name="selectProc"]').val(sessionStorage.getItem('proc'))
 
     rapporti = await window.electronAPI.readFile('rapporti')
@@ -65,7 +78,7 @@ async function visualS21() {
         $('#div_cartolina').removeClass('d-none')
         $('#buttonSingola').removeClass('d-none')
         $('#buttonTutte').removeClass('d-none')
-        if (id_proc == 'p' || id_proc == 'pa' || id_proc == 'pr') {
+        if (isNaN(id_proc)) {
             $('table thead tr th:eq(1)').html('N')
             if (id_proc == 'p')
                 $('#Nome').html('Proclamatori')
@@ -73,6 +86,21 @@ async function visualS21() {
                 $('#Nome').html('Pionieri ausiliari')
             if (id_proc == "pr")
                 $('#Nome').html('Pionieri regolari e speciali')
+            if (id_proc.length > 2) {
+                gruppoStraniero = id_proc.split('-')
+                if (gruppoStraniero[0] == 'p') {
+                    $('#Nome').html('Proclamatori gruppo ' +
+                        gruppi.find(item => item.id === Number(gruppoStraniero[1])).Sorv_Gr)
+                }
+                if (gruppoStraniero[0] == 'pa') {
+                    $('#Nome').html('Pionieri ausiliari gruppo ' +
+                        gruppi.find(item => item.id === Number(gruppoStraniero[1])).Sorv_Gr)
+                }
+                if (gruppoStraniero[0] == 'pr') {
+                    $('#Nome').html('Pionieri regolari gruppo ' +
+                        gruppi.find(item => item.id === Number(gruppoStraniero[1])).Sorv_Gr)
+                }
+            }
             $('#Nome2').html('')
             $('#D_Nasc').html('')
             $('#D_Batt').html('')
@@ -143,18 +171,35 @@ async function visualS21() {
                 year: 'numeric',
                 month: 'long'
             }))
-            if (!isNaN(id_proc)) {
+            if (isNaN(id_proc)) {
+                if (id_proc.length > 2) {
+                    gruppoStraniero = id_proc.split('-')
+                    procGruppo = anagrafica.filter(item => item.Gr == gruppoStraniero[1]).map(item => item.id)
+                    rapporti_mese = rapporti.filter(item => (
+                        (item.Mese == mesi[indice]) &&
+                        (item.Inc == gruppoStraniero[0]) &&
+                        (procGruppo.includes(item.CE_Anag))
+                    ))
+                    rapporto = {}
+                    rapporto.N = rapporti_mese.length
+                    if (rapporti_mese.length != 0) {
+                        keys.forEach(function (key, indiceKeys) {
+                            rapporto[key] = rapporti_mese.map(item => item[key]).reduce((p, n) => p + n)
+                        })
+                    }
+                } else {
+                    rapporti_mese = rapporti.filter(item => ((item.Mese == mesi[indice]) && (item.Inc == id_proc)))
+                    rapporto = {}
+                    rapporto.N = rapporti_mese.length
+                    if (rapporti_mese.length != 0) {
+                        keys.forEach(function (key, indiceKeys) {
+                            rapporto[key] = rapporti_mese.map(item => item[key]).reduce((p, n) => p + n)
+                        })
+                    }
+                }
+            } else {
                 rapporto = rapporti.filter(item => ((item.Mese == mesi[indice]) && (item.CE_Anag == Number(id_proc))))
                 rapporto = rapporto[0]
-            } else {
-                rapporti_mese = rapporti.filter(item => ((item.Mese == mesi[indice]) && (item.Inc == id_proc)))
-                rapporto = {}
-                rapporto.N = rapporti_mese.length
-                if (rapporti_mese.length != 0) {
-                    keys.forEach(function (key, indiceKeys) {
-                        rapporto[key] = rapporti_mese.map(item => item[key]).reduce((p, n) => p + n)
-                    })
-                }
             }
             if (rapporto) {
                 $(`table tbody tr:eq(${indice}) td:eq(${1})`).html(rapporto.Inc || rapporto.N)
@@ -176,17 +221,34 @@ async function visualS21() {
 }
 
 async function fpdfSingola() {
-    if (!isNaN($('#selectProc').val()))
-        proc = proclamatori.find(item => item.id === Number(id_proc))
-    else {
+    if (isNaN($('#selectProc').val())) {
         proc = { id: $('#selectProc').val() }
         if (proc.id == "p") {
             proc.Nome = 'Proclamatori'
-        } else if (proc.id == "pa") {
+        }
+        if (proc.id == "pa") {
             proc.Nome = "Pionieri Ausiliari"
-        } else if (proc.id == "pr") {
+        }
+        if (proc.id == "pr") {
             proc.Nome = "Pionieri Regolari e Speciali"
         }
+        if (proc.id.length > 2) {
+            gruppoStraniero = id_proc.split('-')
+            if (gruppoStraniero[0] == 'p') {
+                proc.Nome = 'Proclamatori gruppo ' +
+                    gruppi.find(item => item.id === Number(gruppoStraniero[1])).Sorv_Gr
+            }
+            if (gruppoStraniero[0] == 'pa') {
+                proc.Nome = 'Pionieri ausiliari gruppo ' +
+                    gruppi.find(item => item.id === Number(gruppoStraniero[1])).Sorv_Gr
+            }
+            if (gruppoStraniero[0] == 'pr') {
+                proc.Nome = 'Pionieri regolari gruppo ' +
+                    gruppi.find(item => item.id === Number(gruppoStraniero[1])).Sorv_Gr
+            }
+        }
+    } else {
+        proc = proclamatori.find(item => item.id === Number(id_proc))
     }
     result = await window.electronAPI.fpdfS21Singola($('#selectAnno').val(), proc)
     if (result.succ)
