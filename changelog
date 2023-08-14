@@ -35,3 +35,9 @@ v1.1.1
 v1.1.2
 - aggiunti gruppi stranieri
 - macOS controlla update bug fix
+
+v1.1.3
+- sistemati gruppi stranieri
+- controllo all'apertura del programma dei rapporti doppi
+- rapporti: possibile cancellare singolo rapporto
+- rapporti: possibile modificare il gruppo associato al rapporto

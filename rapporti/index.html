@@ -17,6 +17,12 @@
     <script src="../node_modules/jquery/dist/jquery.min.js"></script>
     <script src="../node_modules/chart.js/dist/chart.js"></script>
     <script type="text/javascript" src="../include.js"></script>
+    <style>
+      .hover-btn {
+        position: absolute;
+        right: 15px;
+      }
+    </style>
   </head>
 
   <body>
@@ -55,7 +61,7 @@
               <button
                 type="button"
                 class="btn btn-sm btn-success"
-                onclick="modalRapporti(mese.value)"
+                onclick="modalRapporti()"
               >
                 <i class="bi bi-pencil-square"></i> Compila
               </button>
@@ -65,6 +71,7 @@
                 <table class="table table-hover mb-0">
                   <thead>
                     <tr>
+                      <th>Gr <span></span></th>
                       <th>Nome <span></span></th>
                       <th class="text-center">Inc. <span></span></th>
                       <th class="text-center">Pubb. <span></span></th>

@@ -31,6 +31,7 @@ if (platform === 'win32') {
 
 app.whenReady().then(() => {
     creaTabelle()
+    ottimizzaTabelle()
     ipcMain.handle('login', login)
     ipcMain.handle('readFile', readFile)
     ipcMain.handle('writeFile', writeFile)
@@ -51,7 +52,7 @@ app.whenReady().then(() => {
         },
     })
     mainWindow.setTitle("JW Rapporti " + pack.version)
-    mainWindow.maximize();
+    mainWindow.maximize()
     if (app.isPackaged) {
         mainWindow.loadFile('./login/index.html')
         if (platform === 'win32') {
@@ -62,6 +63,7 @@ app.whenReady().then(() => {
     } else {
         mainWindow.loadFile('./home/index.html')
     }
+    controllaRapportiDoppi()
 })
 
 autoUpdater.on('checking-for-update', () => {
@@ -162,6 +164,41 @@ function updateMacos() {
         .catch(err => { throw err })
 }
 
+async function controllaRapportiDoppi() {
+    proclamatori = await readFile(null, 'anagrafica')
+    rapporti = await readFile(null, 'rapporti')
+    rapporti_doppi = []
+    mesi = [...new Set(rapporti.map(item => item.Mese))]
+    mesi.sort()
+    for (let mese of mesi) {
+        for (let proc of proclamatori) {
+            rapporto = rapporti.filter(i => (i.Mese == mese) && (i.CE_Anag == proc.id))
+            if (rapporto.length > 1) {
+                rapporto[0].Nome = proc.Nome
+                rapporti_doppi.push(rapporto[0])
+            }
+        }
+    }
+    if (rapporti_doppi.length > 0) {
+        msg = ''
+        for (let rap of rapporti_doppi) {
+            let data = new Date(rap.Mese)
+            msg += `${data.toLocaleString('it-IT', {
+                month: 'long',
+                year: 'numeric',
+            })} - ${rap.Nome}`
+        }
+        const response = dialog.showMessageBox(mainWindow,
+            {
+                message: `Attenzione! I seguenti rapporti sono doppi. 
+                    È necessario cancellarli manualmente.
+                    
+                    ${msg}`,
+                type: 'warning',
+            })
+    }
+}
+
 function closeModalWindow() {
     updateWindow.close()
 }
@@ -194,6 +231,25 @@ function creaTabelle() {
             }
         }
     })
+}
+
+async function ottimizzaTabelle() {
+    rapporti = await readFile(null, 'rapporti')
+    anagrafica = await readFile(null, 'anagrafica')
+    rapporti.forEach(rapporto => {
+        if (rapporto.hasOwnProperty('CP_Rap')) {
+            delete rapporto.CP_Rap
+        }
+        if (!rapporto.hasOwnProperty('Gr')) {
+            proc = anagrafica.filter(item => item.id == rapporto.CE_Anag)
+            rapporto.Gr = proc[0].Gr
+        }
+    })
+    try {
+        result = await writeFile(null, 'rapporti', rapporti)
+    } catch (e) {
+        return
+    }
 }
 
 async function readFile(event, tableName) {
@@ -520,13 +576,17 @@ async function fpdfRapporti(event, mese) {
     }
 }
 
-async function cartolinaFPDF(pdf, proc, cartolina, link_pdf) {
+async function cartolinaFPDF(pdf, proc, cartolina, link_pdf, link_first_page = null) {
     if (link_pdf != null) {
         pdf.SetLink(link_pdf);
     }
 
     pdf.SetFont('Arial', 'B', 10);
     pdf.Cell(190, 10, "REGISTRAZIONE DEL PROCLAMATORE DI CONGREGAZIONE", 0, 0, 'C');
+    if (link_first_page != null) {
+        pdf.SetFont('ZapfDingbats', '', 11);
+        pdf.Cell(10, 10, "s", 0, 0, 'C', false, 1);
+    }
     pdf.Ln(10);
 
     //Intestazione
@@ -692,7 +752,6 @@ async function cartolinaFPDF(pdf, proc, cartolina, link_pdf) {
     var somma = { 'Pubb': 0, 'Video': 0, 'Ore': 0, 'VU': 0, 'Studi': 0 }
     var conta = 0
     var keys = ['Pubb', 'Video', 'Ore', 'VU', 'Studi']
-    console.log(cartolina)
     for (let rapporto of cartolina) {
         pdf.Cell(36, 7,
             new Date(rapporto.Mese).toLocaleString("it-IT", { year: 'numeric', month: 'long' }), 1, 0, 'L');
@@ -705,7 +764,6 @@ async function cartolinaFPDF(pdf, proc, cartolina, link_pdf) {
             }
             pdf.Cell(48, 7, unescapeHtml(rapporto.Note || ''), 1, 0, 'L');
         } else {
-            pdf.Cell(18, 7, '', 1, 0, 'C');
             for (key of keys) {
                 pdf.Cell(18, 7, '', 1, 0, 'C');
             }
@@ -756,14 +814,24 @@ async function fpdfS21Singola(event, anno, proc) {
             if (isNaN(proc.id)) {
                 if (proc.id.length > 2) {
                     gruppoStraniero = proc.id.split('-')
-                    procGruppo = anagrafica.filter(item => item.Gr == gruppoStraniero[1]).map(item => item.id)
+                    if (gruppoStraniero[1] == 'ita') {
+                        gruppiStranieri = gruppi.filter(item => item.straniero).map(item => item.id)
+                        rapporti_mese = rapporti.filter(item => (
+                            (item.Mese == mese) &&
+                            (item.Inc == gruppoStraniero[0]) &&
+                            (!gruppiStranieri.includes(item.Gr))
+                        ))
+                    } else {
+                        rapporti_mese = rapporti.filter(item => (
+                            (item.Mese == mese) &&
+                            (item.Inc == gruppoStraniero[0]) &&
+                            (item.Gr == gruppoStraniero[1])
+                        ))
+                    }
+                } else {
                     rapporti_mese = rapporti.filter(item => (
                         (item.Mese == mese) &&
-                        (item.Inc == gruppoStraniero[0]) &&
-                        (procGruppo.includes(item.CE_Anag))
-                    ))
-                } else {
-                    rapporti_mese = rapporti.filter(item => ((item.Mese == mese) && (item.Inc == proc.id)))
+                        (item.Inc == proc.id)))
                 }
                 rapporto.N = rapporti_mese.length
                 if (rapporti_mese.length != 0) {
@@ -800,7 +868,8 @@ async function fpdfS21Tutte(event, anno) {
         var keys = ['Pubb', 'Video', 'Ore', 'VU', 'Studi']
         let mm_colonna = 48;
         let mm_x = 0;
-        let link_pdf = []
+        let link_pdf = {}
+        let link_pdf_tot = {}
         gruppi = await readFile(null, 'gruppi')
         gruppi.sort(function (a, b) {
             return a.Num - b.Num
@@ -848,9 +917,18 @@ async function fpdfS21Tutte(event, anno) {
         pdf.SetTextColor(0, 0, 0);
         pdf.SetAutoPageBreak(1, 3);
         pdf.AddPage();
-        pdf.SetFont('Arial', '', 16);
-        pdf.Cell(mm_colonna * 4, 10, "Pionieri", 1, 0, 'C');
+        pdf.SetFont('Arial', 'B', 20);
+        pdf.SetY(3);
+        //utilizzato come workaround bug primo link
+        link0 = pdf.AddLink()
+        pdf.SetLink(link0)
+
+        link_first_page = pdf.AddLink()
+        pdf.SetLink(link_first_page)
+        pdf.Cell(mm_colonna * 4, 10, "Cartoline anno " + anno, 0, 0, 'C', false)
         pdf.Ln(10);
+        pdf.SetFont('Arial', '', 16);
+        pdf.Cell(mm_colonna * 4, 8, "Pionieri", 1, 1, 'C');
         pdf.SetFont('Arial', '', 10);
         for (pioniere of pionieri) {
             if (mm_x >= mm_colonna * 4) {
@@ -866,8 +944,7 @@ async function fpdfS21Tutte(event, anno) {
         for (proc_filter of proclamatori) {
             pdf.SetFont('Arial', '', 16);
             gruppo = gruppi.find(item => item.id === proc_filter[0].Gr)
-            pdf.Cell(mm_colonna * 4, 10, `Proclamatori - Gruppo ${gruppo['Num']} ${gruppo["Sorv_Gr"]}`, 1, 0, 'C');
-            pdf.Ln(10);
+            pdf.Cell(mm_colonna * 4, 8, `Proclamatori - Gruppo ${gruppo['Num']} ${gruppo["Sorv_Gr"]}`, 1, 1, 'C');
             pdf.SetFont('Arial', '', 10);
             mm_x = 0;
             for (proc of proc_filter) {
@@ -883,8 +960,7 @@ async function fpdfS21Tutte(event, anno) {
         }
 
         pdf.SetFont('Arial', '', 16);
-        pdf.Cell(mm_colonna * 4, 10, "Inattivi", 1, 0, 'C');
-        pdf.Ln(10);
+        pdf.Cell(mm_colonna * 4, 8, "Inattivi", 1, 1, 'C');
         pdf.SetFont('Arial', '', 10);
         mm_x = 0;
         for (inattivo of inattivi) {
@@ -898,36 +974,49 @@ async function fpdfS21Tutte(event, anno) {
         }
         pdf.Ln(8);
 
+        gruppiStranieri = gruppi.filter(item => item.straniero)
+        if (gruppiStranieri.length > 0) {
+            pdf.SetFont('Arial', '', 16);
+            pdf.Cell(mm_colonna * 4, 8, "Parziali", 1, 1, 'C');
+            pdf.SetFont('Arial', '', 10);
+            for (gruppo of gruppiStranieri) {
+                link_pdf_tot['p-' + gruppo.id] = pdf.AddLink();
+                pdf.Cell(mm_colonna, 8, 'Proclamatori gr. ' + gruppo.Sorv_Gr, 0, 0, 'L', false,
+                    link_pdf_tot['p-' + gruppo.id])
+
+                link_pdf_tot['pa-' + gruppo.id] = pdf.AddLink();
+                pdf.Cell(mm_colonna, 8, 'P. ausiliari gr. ' + gruppo.Sorv_Gr, 0, 0, 'L', false,
+                    link_pdf_tot['pa-' + gruppo.id])
+
+                link_pdf_tot['pr-' + gruppo.id] = pdf.AddLink();
+                pdf.Cell(mm_colonna, 8, 'P. regolari gr. ' + gruppo.Sorv_Gr, 0, 0, 'L', false,
+                    link_pdf_tot['pr-' + gruppo.id])
+                pdf.Ln(8)
+            }
+            link_pdf_tot['p-ita'] = pdf.AddLink();
+            pdf.Cell(mm_colonna, 8, 'Proclamatori italiani', 0, 0, 'L', false,
+                link_pdf_tot['p-ita'])
+
+            link_pdf_tot['pa-ita'] = pdf.AddLink();
+            pdf.Cell(mm_colonna, 8, 'P. ausiliari italiani', 0, 0, 'L', false,
+                link_pdf_tot['pa-ita'])
+
+            link_pdf_tot['pr-ita'] = pdf.AddLink();
+            pdf.Cell(mm_colonna, 8, 'P. regolari italiani', 0, 0, 'L', false,
+                link_pdf_tot['pr-ita'])
+            pdf.Ln(8)
+        }
+
         pdf.SetFont('Arial', '', 16);
-        pdf.Cell(mm_colonna * 4, 10, "Totali", 1, 0, 'C');
-        pdf.Ln(10);
+        pdf.Cell(mm_colonna * 4, 8, "Totali", 1, 1, 'C');
         pdf.SetFont('Arial', '', 10);
 
-        gruppi.forEach(function (gruppo, indice) {
-            if (gruppo.hasOwnProperty('straniero')) {
-                if (gruppo.straniero) {
-                    link_pdf_tot['p-' + gruppo.id] = pdf.AddLink();
-                    pdf.Cell(mm_colonna, 8, 'Proclamatori gr. ' + gruppo.Sorv_Gr, 0, 0, 'L', false,
-                        link_pdf_tot['p-' + gruppo.id])
-
-                    link_pdf_tot['pa-' + gruppo.id] = pdf.AddLink();
-                    pdf.Cell(mm_colonna, 8, 'P. ausiliari gr. ' + gruppo.Sorv_Gr, 0, 0, 'L', false,
-                        link_pdf_tot['pa-' + gruppo.id])
-
-                    link_pdf_tot['pr-' + gruppo.id] = pdf.AddLink();
-                    pdf.Cell(mm_colonna, 8, 'P. regolari gr. ' + gruppo.Sorv_Gr, 0, 0, 'L', false,
-                        link_pdf_tot['pr-' + gruppo.id])
-                    pdf.Ln(8)
-                }
-            }
-        })
-
-        link_pdf_p = pdf.AddLink()
-        pdf.Cell(mm_colonna, 8, 'Proclamatori', 0, 0, 'L', false, link_pdf_p);
-        link_pdf_pa = pdf.AddLink()
-        pdf.Cell(mm_colonna, 8, 'Pionieri Ausiliari', 0, 0, 'L', false, link_pdf_pa);
-        link_pdf_pr = pdf.AddLink()
-        pdf.Cell(mm_colonna, 8, 'Pionieri Regolari e Speciali', 0, 0, 'L', false, link_pdf_pr);
+        link_pdf_tot['p'] = pdf.AddLink()
+        pdf.Cell(mm_colonna, 8, 'Proclamatori', 0, 0, 'L', false, link_pdf_tot['p']);
+        link_pdf_tot['pa'] = pdf.AddLink()
+        pdf.Cell(mm_colonna, 8, 'Pionieri Ausiliari', 0, 0, 'L', false, link_pdf_tot['pa']);
+        link_pdf_tot['pr'] = pdf.AddLink()
+        pdf.Cell(mm_colonna, 8, 'Pionieri Regolari e Speciali', 0, 0, 'L', false, link_pdf_tot['pr']);
         pdf.Ln(8)
 
         for (riga of pionieri) {
@@ -942,7 +1031,7 @@ async function fpdfS21Tutte(event, anno) {
                 cartolina.push(rapporto)
             }
 
-            await cartolinaFPDF(pdf, riga, cartolina, link_pdf[riga["id"]]);
+            await cartolinaFPDF(pdf, riga, cartolina, link_pdf[riga["id"]], link_first_page);
         }
         for (proc_filter of proclamatori) {
             for (riga of proc_filter) {
@@ -956,7 +1045,7 @@ async function fpdfS21Tutte(event, anno) {
                         rapporto = rap
                     cartolina.push(rapporto)
                 }
-                await cartolinaFPDF(pdf, riga, cartolina, link_pdf[riga["id"]]);
+                await cartolinaFPDF(pdf, riga, cartolina, link_pdf[riga["id"]], link_first_page);
             }
         }
         for (riga of inattivi) {
@@ -970,88 +1059,146 @@ async function fpdfS21Tutte(event, anno) {
                     rapporto = rap
                 cartolina.push(rapporto)
             }
-            await cartolinaFPDF(pdf, riga, cartolina, link_pdf[riga["id"]]);
+            await cartolinaFPDF(pdf, riga, cartolina, link_pdf[riga["id"]], link_first_page);
         }
-
-        for (gruppo in gruppi) {
-            if (gruppo.hasOwnProperty('straniero')) {
-                if (gruppo.straniero) {
-                    pdf.AddPage()
-                    pdf.SetY(3)
-                    cartolina = []
-                    for (let mese of mesi) {
-                        rapporto = { 'Mese': mese }
-                        procGruppo = anagrafica.filter(item => item.Gr == gruppo.id).map(item => item.id)
-                        rapporti_mese = rapporti.filter(item => (
-                            (item.Mese == mese) &&
-                            (item.Inc == 'p') &&
-                            (procGruppo.includes(item.CE_Anag))
-                        ))
-                        rapporto.N = rapporti_mese.length
-                        if (rapporti_mese.length != 0) {
-                            keys.forEach(function (key, indiceKeys) {
-                                rapporto[key] = rapporti_mese.map(item => item[key]).reduce((p, n) => p + n)
-                            })
-                        }
-                        cartolina.push(rapporto)
+        if (gruppiStranieri.length > 0) {
+            for (gruppo of gruppiStranieri) {
+                pdf.AddPage()
+                pdf.SetY(3)
+                cartolina = []
+                for (let mese of mesi) {
+                    rapporti_mese = rapporti.filter(item => (
+                        (item.Mese == mese) &&
+                        (item.Inc == 'p') &&
+                        (item.Gr == gruppo.id)
+                    ))
+                    rapporto = { 'Mese': mese }
+                    rapporto.N = rapporti_mese.length
+                    if (rapporti_mese.length != 0) {
+                        keys.forEach(function (key, indiceKeys) {
+                            rapporto[key] = rapporti_mese.map(item => item[key]).reduce((p, n) => p + n)
+                        })
                     }
-                    await cartolinaFPDF(pdf, { id: 'p', Nome: 'Proclamatori gr. ' + gruppo.Sorv_Gr }, cartolina,
-                        link_pdf_tot['p-' + gruppo.id])
-
-                    pdf.AddPage()
-                    pdf.SetY(3)
-                    cartolina = []
-                    for (let mese of mesi) {
-                        rapporto = { 'Mese': mese }
-                        procGruppo = anagrafica.filter(item => item.Gr == gruppo.id).map(item => item.id)
-                        rapporti_mese = rapporti.filter(item => (
-                            (item.Mese == mese) &&
-                            (item.Inc == 'pa') &&
-                            (procGruppo.includes(item.CE_Anag))
-                        ))
-                        rapporto.N = rapporti_mese.length
-                        if (rapporti_mese.length != 0) {
-                            keys.forEach(function (key, indiceKeys) {
-                                rapporto[key] = rapporti_mese.map(item => item[key]).reduce((p, n) => p + n)
-                            })
-                        }
-                        cartolina.push(rapporto)
-                    }
-                    await cartolinaFPDF(pdf, { id: 'pa', Nome: 'P. ausiliari gr. ' + gruppo.Sorv_Gr }, cartolina,
-                        link_pdf_tot['pa-' + gruppo.id])
-
-                    pdf.AddPage()
-                    pdf.SetY(3)
-                    cartolina = []
-                    for (let mese of mesi) {
-                        rapporto = { 'Mese': mese }
-                        procGruppo = anagrafica.filter(item => item.Gr == gruppo.id).map(item => item.id)
-                        rapporti_mese = rapporti.filter(item => (
-                            (item.Mese == mese) &&
-                            (item.Inc == 'pr') &&
-                            (procGruppo.includes(item.CE_Anag))
-                        ))
-                        rapporto.N = rapporti_mese.length
-                        if (rapporti_mese.length != 0) {
-                            keys.forEach(function (key, indiceKeys) {
-                                rapporto[key] = rapporti_mese.map(item => item[key]).reduce((p, n) => p + n)
-                            })
-                        }
-                        cartolina.push(rapporto)
-                    }
-                    await cartolinaFPDF(pdf, { id: 'pr', Nome: 'P. regolari gr. ' + gruppo.Sorv_Gr }, cartolina,
-                        link_pdf_tot['pr-' + gruppo.id])
-                    link_pdf_tot['pr-' + gruppo.id] = pdf.AddLink();
+                    cartolina.push(rapporto)
                 }
+                await cartolinaFPDF(pdf, { id: 'p', Nome: 'Proclamatori gr. ' + gruppo.Sorv_Gr }, cartolina,
+                    link_pdf_tot['p-' + gruppo.id], link_first_page)
+
+                pdf.AddPage()
+                pdf.SetY(3)
+                cartolina = []
+                for (let mese of mesi) {
+                    procGruppo = anagrafica.filter(item => item.Gr == gruppo.id).map(item => item.id)
+                    rapporti_mese = rapporti.filter(item => (
+                        (item.Mese == mese) &&
+                        (item.Inc == 'pa') &&
+                        (item.Gr == gruppo.id)
+                    ))
+                    rapporto = { 'Mese': mese }
+                    rapporto.N = rapporti_mese.length
+                    if (rapporti_mese.length != 0) {
+                        keys.forEach(function (key, indiceKeys) {
+                            rapporto[key] = rapporti_mese.map(item => item[key]).reduce((p, n) => p + n)
+                        })
+                    }
+                    cartolina.push(rapporto)
+                }
+                await cartolinaFPDF(pdf, { id: 'pa', Nome: 'Pionieri ausiliari gr. ' + gruppo.Sorv_Gr }, cartolina,
+                    link_pdf_tot['pa-' + gruppo.id], link_first_page)
+
+                pdf.AddPage()
+                pdf.SetY(3)
+                cartolina = []
+                for (let mese of mesi) {
+                    rapporti_mese = rapporti.filter(item => (
+                        (item.Mese == mese) &&
+                        (item.Inc == 'pr') &&
+                        (item.Gr == gruppo.id)
+                    ))
+                    rapporto = { 'Mese': mese }
+                    rapporto.N = rapporti_mese.length
+                    if (rapporti_mese.length != 0) {
+                        keys.forEach(function (key, indiceKeys) {
+                            rapporto[key] = rapporti_mese.map(item => item[key]).reduce((p, n) => p + n)
+                        })
+                    }
+                    cartolina.push(rapporto)
+                }
+                await cartolinaFPDF(pdf, { id: 'pr', Nome: 'Pionieri regolari gr. ' + gruppo.Sorv_Gr }, cartolina,
+                    link_pdf_tot['pr-' + gruppo.id], link_first_page)
             }
+
+            pdf.AddPage()
+            pdf.SetY(3)
+            cartolina = []
+            idGruppiStranieri = gruppi.filter(item => item.straniero).map(item => item.id)
+            for (let mese of mesi) {
+                rapporti_mese = rapporti.filter(item => (
+                    (item.Mese == mese) &&
+                    (item.Inc == 'p') &&
+                    (!idGruppiStranieri.includes(item.Gr))
+                ))
+                rapporto = { 'Mese': mese }
+                rapporto.N = rapporti_mese.length
+                if (rapporti_mese.length != 0) {
+                    keys.forEach(function (key, indiceKeys) {
+                        rapporto[key] = rapporti_mese.map(item => item[key]).reduce((p, n) => p + n)
+                    })
+                }
+                cartolina.push(rapporto)
+            }
+            await cartolinaFPDF(pdf, { id: 'p', Nome: 'Proclamatori italiano' }, cartolina,
+                link_pdf_tot['p-ita'], link_first_page)
+
+            pdf.AddPage()
+            pdf.SetY(3)
+            cartolina = []
+            for (let mese of mesi) {
+                rapporti_mese = rapporti.filter(item => (
+                    (item.Mese == mese) &&
+                    (item.Inc == 'pa') &&
+                    (!idGruppiStranieri.includes(item.Gr))
+                ))
+                rapporto = { 'Mese': mese }
+                rapporto.N = rapporti_mese.length
+                if (rapporti_mese.length != 0) {
+                    keys.forEach(function (key, indiceKeys) {
+                        rapporto[key] = rapporti_mese.map(item => item[key]).reduce((p, n) => p + n)
+                    })
+                }
+                cartolina.push(rapporto)
+            }
+            await cartolinaFPDF(pdf, { id: 'pa', Nome: 'Pionieri ausiliari italiano' }, cartolina,
+                link_pdf_tot['pa-ita'], link_first_page)
+
+            pdf.AddPage()
+            pdf.SetY(3)
+            cartolina = []
+            for (let mese of mesi) {
+                rapporti_mese = rapporti.filter(item => (
+                    (item.Mese == mese) &&
+                    (item.Inc == 'pr') &&
+                    (!idGruppiStranieri.includes(item.Gr))
+                ))
+                rapporto = { 'Mese': mese }
+                rapporto.N = rapporti_mese.length
+                if (rapporti_mese.length != 0) {
+                    keys.forEach(function (key, indiceKeys) {
+                        rapporto[key] = rapporti_mese.map(item => item[key]).reduce((p, n) => p + n)
+                    })
+                }
+                cartolina.push(rapporto)
+            }
+            await cartolinaFPDF(pdf, { id: 'pr', Nome: 'Pionieri regolari italiano' }, cartolina,
+                link_pdf_tot['pr-ita'], link_first_page)
         }
 
         pdf.AddPage()
         pdf.SetY(3)
         cartolina = []
         for (let mese of mesi) {
+            rapporti_mese = rapporti.filter(item => ((item.Mese == mese) && (item.Inc == 'p')))
             rapporto = { 'Mese': mese }
-            rapporti_mese = rapporti.filter(item => ((item.Mese == mese) && (item.Inc == proc.id)))
             rapporto.N = rapporti_mese.length
             if (rapporti_mese.length != 0) {
                 keys.forEach(function (key, indiceKeys) {
@@ -1060,14 +1207,15 @@ async function fpdfS21Tutte(event, anno) {
             }
             cartolina.push(rapporto)
         }
-        await cartolinaFPDF(pdf, anno, { id: 'p', Nome: "Proclamatori" }, link_pdf_p);
+        await cartolinaFPDF(pdf, { id: 'p', Nome: "Proclamatori congregazione" }, cartolina,
+            link_pdf_tot['p'], link_first_page);
 
         pdf.AddPage()
         pdf.SetY(3)
         cartolina = []
         for (let mese of mesi) {
             rapporto = { 'Mese': mese }
-            rapporti_mese = rapporti.filter(item => ((item.Mese == mese) && (item.Inc == proc.id)))
+            rapporti_mese = rapporti.filter(item => ((item.Mese == mese) && (item.Inc == 'pa')))
             rapporto.N = rapporti_mese.length
             if (rapporti_mese.length != 0) {
                 keys.forEach(function (key, indiceKeys) {
@@ -1076,14 +1224,15 @@ async function fpdfS21Tutte(event, anno) {
             }
             cartolina.push(rapporto)
         }
-        await cartolinaFPDF(pdf, anno, { id: 'pa', Nome: "Pionieri Ausiliari" }, link_pdf_pa);
+        await cartolinaFPDF(pdf, { id: 'pa', Nome: "Pionieri ausiliari congregazione" }, cartolina,
+            link_pdf_tot['pa'], link_first_page);
 
         pdf.AddPage()
         pdf.SetY(3)
         cartolina = []
         for (let mese of mesi) {
             rapporto = { 'Mese': mese }
-            rapporti_mese = rapporti.filter(item => ((item.Mese == mese) && (item.Inc == proc.id)))
+            rapporti_mese = rapporti.filter(item => ((item.Mese == mese) && (item.Inc == 'pr')))
             rapporto.N = rapporti_mese.length
             if (rapporti_mese.length != 0) {
                 keys.forEach(function (key, indiceKeys) {
@@ -1092,7 +1241,8 @@ async function fpdfS21Tutte(event, anno) {
             }
             cartolina.push(rapporto)
         }
-        await cartolinaFPDF(pdf, anno, { id: 'pr', Nome: "Pionieri Regolari" }, link_pdf_pr);
+        await cartolinaFPDF(pdf, { id: 'pr', Nome: "Pionieri regolari congregazione" }, cartolina,
+            link_pdf_tot['pr'], link_first_page)
 
         try {
             pdf.Output('F', path.join(filePaths[0], `S-21 complete ${anno}.pdf`))
@@ -1358,7 +1508,11 @@ async function importaFile() {
 */
 
 async function loadBackup() {
-    const { canceled, filePaths } = await dialog.showOpenDialog()
+    const { canceled, filePaths } = await dialog.showOpenDialog({
+        filters: [
+            { name: 'Backup', extensions: ['json'] },
+        ]
+    })
     if (canceled) {
         return
     } else {
@@ -1381,6 +1535,7 @@ async function loadBackup() {
                     if (err) return console.log(err);
                 })
             }
+            ottimizzaTabelle()
             return { succ: true, msg: 'Dati importati con successo' }
         } catch (err) {
             for (tabella of tabelle) {

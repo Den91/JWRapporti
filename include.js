@@ -87,69 +87,6 @@ function toast(id, colore, testo, tempo = 5000) {
   $(`#${id}`).toast("show");
 }
 
-/*
-function mostraNotifiche() {
-  if (sessionStorage.getItem('notifiche')) {
-    while (notifica = notifichePop()) {
-      if (notifica.succ) {
-        toastOk(notifica.msg)
-      } else {
-        toastKo(notifica.msg)
-      }
-    }
-    //console.log(JSON.parse(sessionStorage.getItem('notifiche')))
-  }
-}
-
-
-function notifichePush(nuovaNotifica) {
-  let notifiche = new Array()
-  if (sessionStorage.getItem('notifiche') != null) {
-    notifiche = JSON.parse(sessionStorage.getItem('notifiche'))
-  }
-  notifiche.push(nuovaNotifica)
-  sessionStorage.setItem('notifiche', JSON.stringify(notifiche))
-}
-
-function notifichePop() {
-  let notifica
-  let notifiche = new Array()
-  notifiche = JSON.parse(sessionStorage.getItem('notifiche'))
-  if (notifiche.length == 0) {
-    return false
-  }
-  notifica = notifiche.pop()
-  sessionStorage.setItem('notifiche', JSON.stringify(notifiche))
-  return notifica
-}
-
-function toastOk(testo) {
-  $(".toast-container").append(`
-    <div class="toast border-0" id="ToastOk" data-bs-delay="5000">
-      <div class="d-flex alert alert-success m-0 p-0">
-        <div class="toast-body my-3 ms-1">
-          ${testo}
-        </div>
-        <button type="button" class="btn-close ms-auto me-2 mt-2" data-bs-dismiss="toast" aria-label="Close"></button>
-      </div>
-    </div>`)
-  $("#ToastOk").toast("show");
-}
-
-function toastKo(testo) {
-  $(".toast-container").append(`
-      <div class="toast border-0" id="ToastKo" data-bs-delay="5000">
-        <div class="d-flex alert alert-danger m-0 p-0">
-          <div class="toast-body my-3 ms-1">
-            ${testo}
-          </div>
-          <button type="button" class="btn-close ms-auto me-2 mt-2" data-bs-dismiss="toast" aria-label="Close"></button>
-        </div>
-      </div>`)
-  $("#ToastKo").toast("show");
-}
-*/
-
 function getMese() {
   m = sessionStorage.getItem('mese')
   if (!m) {
@@ -232,4 +169,51 @@ function unescapeHtml(safe) {
     .replace(/&gt;/g, ">")
     .replace(/&quot;/g, '"')
     .replace(/&#039;/g, "'");
+}
+
+function modalAvviso(avviso, nomeFunzione) {
+  if ($('#ModalAvviso').length == 0) {
+    $('body').prepend($(`
+      <div class="modal fade" id="ModalAvviso">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content">
+            <!-- Modal Header -->
+            <div class="modal-header border-bottom-0">
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="modal"
+              ></button>
+            </div>
+            <!-- Modal body -->
+            <div class="modal-body pt-1 text-center">
+              <span id="testoAvviso">${avviso}</span>
+            </div>
+            <!-- Modal footer -->
+            <div class="modal-footer pt-0 border-top-0">
+              <button
+                type="button"
+                class="btn btn-sm btn-secondary"
+                data-bs-dismiss="modal"
+              >
+                Annulla
+              </button>
+              <button 
+                type="button"
+                class="btn btn-sm btn-danger"
+                id="buttonModal"
+                onclick="${nomeFunzione}"
+              >
+                Elimina
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+  `))
+  } else {
+    $("#testoAvviso").html(avviso)
+    $("#buttonModal").attr('onclick', nomeFunzione)
+  }
+  $("#ModalAvviso").modal("show")
 }

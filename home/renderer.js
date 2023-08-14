@@ -1,11 +1,15 @@
 var proclamatori
 var rapporti
+const oggi = new Date()
+
+$(window).resize(function () {
+    marginBody()
+})
 
 $(document).ready(async function () {
     navbar("home")
 
     proclamatori = await window.electronAPI.readFile('anagrafica')
-    //let proclamatori = await window.electronAPI.getRows('anagrafica', { Attivo: '1', Elimina: '0' })
     proclamatori.sort(function (a, b) {
         if (a.Nome.toUpperCase() < b.Nome.toUpperCase())
             return -1
@@ -13,7 +17,8 @@ $(document).ready(async function () {
             return 1
         return 0
     })
-    const oggi = new Date()
+
+    rapporti = await window.electronAPI.readFile('rapporti')
 
     var unAnnoBattezzati = $.grep(proclamatori, function (item) {
         let d = new Date(item.D_Batt)
@@ -26,7 +31,12 @@ $(document).ready(async function () {
             $('#elencoBattezzati').append(`<div class="col-2 py-1">${proc.Nome}</div>`)
         }
     }
+    avvisiRapporti()
+    rapportiMancanti()
+    grafici()
+})
 
+function avvisiRapporti() {
     if (oggi.getDate() == 20) {
         $('#alert').append(`
             <div class="alert alert-danger">
@@ -39,12 +49,13 @@ $(document).ready(async function () {
                 Mancano ${20 - oggi.getDate()} giorni per inviare i rapporti
             </div>`)
     }
+}
 
+function rapportiMancanti() {
     $('#divRapportiMancanti').addClass('d-none')
     $('#divElenco').html(``)
     let mese = new Date()
     mese.setMonth(oggi.getMonth() - 1);
-    rapporti = await window.electronAPI.readFile('rapporti')
     for (proc of proclamatori) {
         m = `${mese.toLocaleString('it-IT', {
             year: 'numeric'
@@ -57,21 +68,9 @@ $(document).ready(async function () {
             $('#divElenco').append(`<div class="col-2 py-1"><i class="bi bi-person-fill"></i> ${proc.Nome}</div>`)
         }
     }
+}
 
-    /*
-    let mese = new Date()
-    mese.setMonth(oggi.getMonth() - 1);
-    rap = await window.electronAPI.getRows('rapporti', {
-        Mese: `${mese.toLocaleString('it-IT', {
-            year: 'numeric'
-        })}-${mese.toLocaleString('it-IT', {
-            month: '2-digit'
-        })}`
-    })
-    const difference = proclamatori.filter(({ id: id1 }) => !rap.some(({ id: id2 }) => id2 === id1));
-    console.log(difference)
-    */
-
+function grafici() {
     let ore = []
     let pubb = []
     let video = []
@@ -199,8 +198,4 @@ $(document).ready(async function () {
             }
         }
     })
-})
-
-$(window).resize(function () {
-    marginBody()
-})
+}

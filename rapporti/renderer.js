@@ -10,6 +10,16 @@ $("th").click(function () {
     ordinaTabella(this);
 })
 
+$(document).on("mouseover", 'tr',
+    function () {
+        $(this).find('.hover-btn').removeClass('d-none')
+    }
+).on("mouseout", 'tr',
+    function () {
+        $(this).find('.hover-btn').addClass('d-none')
+    }
+)
+
 $(document).ready(async function () {
     navbar("rapporti")
     $('[name="mese"]').val(getMese())
@@ -33,38 +43,66 @@ async function loadPage() {
     $('#buttonPDF').addClass('d-none')
     if (mese != "") {
         rapporti = await window.electronAPI.readFile('rapporti')
+        rapporti.sort(function (a, b) {
+            if (a.Mese < b.Mese)
+                return 1
+            if (a.Mese > b.Mese)
+                return -1
+            return 0
+        })
         rapporti_mese = rapporti.filter(rapporto => rapporto.Mese == mese)
         if (rapporti_mese.length != 0) {
             $('#buttonPDF').removeClass('d-none')
-            rapporti_mese.forEach(function (rapporto, indice) {
-                proc = proclamatori.find(item => item.id === rapporto.CE_Anag)
-                $("#TBodyRapporti").append(`
-                    <tr>
-                        <td class="nomeProc">${proc.Nome}</td>
-                        <td class="text-center">${rapporto.Inc}</td>
-                        <td class="text-center">${rapporto.Pubb || ""}</td>
-                        <td class="text-center">${rapporto.Video || ""}</td>
-                        <td class="text-center">${rapporto.Ore || ""}</td>
-                        <td class="text-center">${rapporto.VU || ""}</td>
-                        <td class="text-center">${rapporto.Studi || ""}</td>
-                        <td>${rapporto.Note}</td>
-                    </tr>`)
-            })
-            $("table:eq(0) th:eq(0)")[0].asc = null
-            ordinaTabella($("table:eq(0) th:eq(0)")[0])
+            for (rapporto of rapporti_mese) {
+                proc = proclamatori.find(item => item.id == rapporto.CE_Anag)
+                if (rapporto.Gr == null) {
+                    gruppo = ''
+                } else {
+                    gruppo = gruppi.find(item => item.id == rapporto.Gr)['Num']
+                }
+                $("#TBodyRapporti").append($('<tr></tr>'))
+                $("#TBodyRapporti tr:last").append($(`<td>${gruppo}</td>`))
+                $("#TBodyRapporti tr:last").append($(`<td class="nomeProc">${proc.Nome}</td>`))
+                $("#TBodyRapporti tr:last").append($(`<td class="text-center">${rapporto.Inc}</td>`))
+                $("#TBodyRapporti tr:last").append($(`<td class="text-center">${rapporto.Pubb || ""}</td>`))
+                $("#TBodyRapporti tr:last").append($(`<td class="text-center">${rapporto.Video || ""}</td>`))
+                $("#TBodyRapporti tr:last").append($(`<td class="text-center">${rapporto.Ore || ""}</td>`))
+                $("#TBodyRapporti tr:last").append($(`<td class="text-center">${rapporto.VU || ""}</td>`))
+                $("#TBodyRapporti tr:last").append($(`<td class="text-center">${rapporto.Studi || ""}</td>`))
+                $("#TBodyRapporti tr:last").append($(`
+                    <td>
+                        <div class="d-flex">
+                            <div class="flex-grow-1">
+                                <span class="">${rapporto.Note}</span>
+                            </div>
+                            <div class="hover-btn d-none">
+                                <button
+                                    class="btn btn-danger btn-sm px-1 py-0"
+                                    id="pulsanteEliminaRapporto"
+                                    onclick="modalAvvisoRapporto('${rapporto.id}','${proc.Nome}')"
+                                >
+                                    <i class="bi bi-trash3"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </td>`))
+            }
+            $("table:eq(0) th:eq(1)")[0].asc = null
+            ordinaTabella($("table:eq(0) th:eq(1)")[0])
         }
     }
 }
 
-function modalRapporti(mese) {
+function modalRapporti() {
+    mese = $('[name="mese"]').val()
     $("#FormRapporti").html(``)
     $("#ModalRapportiTitle").html(`Rapporti - ${new Date(mese).toLocaleString('it-IT', { month: 'long', year: 'numeric' })}`)
-    gruppi.forEach(function (gruppo, indice) {
+    for (gruppo of gruppi) {
         $("#FormRapporti").append(`
             <div id="DivGruppo${gruppo.id}" class="d-none DivGruppi">
                 <h5>Gruppo ${gruppo.Num} - ${gruppo.Sorv_Gr}</h5>
             </div>`);
-    })
+    }
     $("#FormRapporti").append(`
         <div id="DivNoGruppo" class="d-none DivGruppi">
             <h5>Senza gruppo</h5>
@@ -77,36 +115,78 @@ function modalRapporti(mese) {
         </div>
         `)
     rapporti_mese = rapporti.filter(rapporto => rapporto.Mese == mese)
-    proclamatori.forEach(function (proclamatore, indice) {
+    for (proclamatore of proclamatori) {
         var rapporto = null
         if (rapporti_mese) {
-            rapporto = rapporti_mese.find(item => item.CE_Anag === proclamatore.id)
+            rapporto = rapporti_mese.find(item => item.CE_Anag == proclamatore.id)
         }
         if (proclamatore.Elimina == 1) {
             if (rapporto) {
-                $("#DivEliminati").removeClass('d-none').append(htmlRapporto(proclamatore, rapporto))
+                $("#DivEliminati").removeClass('d-none').append(htmlRapporto(proclamatore))
             }
         } else {
             if (proclamatore.Attivo == 0) {
-                $("#DivInattivi").removeClass('d-none').append(htmlRapporto(proclamatore, rapporto))
+                $("#DivInattivi").removeClass('d-none').append(htmlRapporto(proclamatore))
             } else {
                 if (proclamatore.Gr != '')
-                    $("#DivGruppo" + proclamatore.Gr).removeClass('d-none').append(htmlRapporto(proclamatore, rapporto))
+                    $("#DivGruppo" + proclamatore.Gr)
+                        .removeClass('d-none')
+                        .append(htmlRapporto(proclamatore))
                 else {
-                    $("#DivNoGruppo").removeClass('d-none').append(htmlRapporto(proclamatore, rapporto))
+                    $("#DivNoGruppo").removeClass('d-none').append(htmlRapporto(proclamatore))
                 }
             }
         }
-    })
+        $(`#Gr-${proclamatore.id}`).val(proclamatore.Gr)
+        if (rapporto) {
+            $(`#CP_Rap-${proclamatore.id}`).val(rapporto.id)
+            $(`#Gr-${proclamatore.id}`).val(rapporto.Gr ? rapporto.Gr : "")
+            $(`#Inc-${proclamatore.id}`).val(rapporto.Inc)
+            $(`#Pubb-${proclamatore.id}`).val(rapporto.Pubb ? rapporto.Pubb : "")
+            $(`#Video-${proclamatore.id}`).val(rapporto.Video ? rapporto.Video : "")
+            $(`#Ore-${proclamatore.id}`).val(rapporto.Ore ? rapporto.Ore : "")
+            $(`#VU-${proclamatore.id}`).val(rapporto.VU ? rapporto.VU : "")
+            $(`#Studi-${proclamatore.id}`).val(rapporto.Studi ? rapporto.Studi : "")
+            $(`#Note-${proclamatore.id}`).val(rapporto.Note ? rapporto.Note : "")
+        }
+    }
     $("#FormRapporti div.DivGruppi:not(.d-none):not(:last)").append('<hr class="mt-1">')
     $("#ModalRapporti").modal("show");
 }
 
-function htmlRapporto(proclamatore, rapporto) {
-    return `<div class="row g-2 mb-3">
-        <input type="hidden" name="CP_Anag" value="${proclamatore.id}">
-        <input type="hidden" name="CP_Rap" value="${rapporto ? rapporto.id : ""}">
-        <div class="col-3 align-self-center">
+function htmlRapporto(proclamatore) {
+    option_gruppi = ''
+    for (gruppo of gruppi) {
+        option_gruppi += `
+            <option value="${gruppo.id}">${gruppo.Num}</option>`
+    }
+    return `
+    <div class="row g-2 mb-3">
+        <input
+            type="hidden"
+            name="CP_Anag"
+            value="${proclamatore.id}"
+        >
+        <input
+            type="hidden"
+            id="CP_Rap-${proclamatore.id}"
+            name="CP_Rap"
+        >
+        <div class="col-1">
+            <div class="form-floating">
+                <select
+                    class="form-select"
+                    id="Gr-${proclamatore.id}"
+                    name="Gr[]" 
+                    value=""
+                >
+                    <option value=""></option>
+                    ${option_gruppi}
+                </select>
+                <label for="Gr">Gr</label>                             
+            </div>
+        </div>
+        <div class="col-2 align-self-center">
             ${proclamatore.Nome}
         </div>
         <div class="col-1">
@@ -119,13 +199,13 @@ function htmlRapporto(proclamatore, rapporto) {
                     onchange="convalida(this)"
                 >
                     <option value=""></option>
-                    <option value="p" ${rapporto ? rapporto.Inc == "p" ? "selected" : "" : ""}>p</option>
-                    <option value="pa" ${rapporto ? rapporto.Inc == "pa" ? "selected" : "" : ""}>pa</option>
-                    <option value="pr" ${rapporto ? rapporto.Inc == "pr" ? "selected" : "" : ""}>pr</option>
-                    <option value="ps" ${rapporto ? rapporto.Inc == "ps" ? "selected" : "" : ""}>ps</option>
-                    <option value="ir" ${rapporto ? rapporto.Inc == "ir" ? "selected" : "" : ""}>ir</option>
+                    <option value="p">p</option>
+                    <option value="pa">pa</option>
+                    <option value="pr">pr</option>
+                    <option value="ps">ps</option>
+                    <option value="ir">ir</option>
                 </select>
-                <label for="Inc${proclamatore.id}">Inc.</label>                             
+                <label for="Inc">Inc.</label>                             
             </div>
         </div>
         <div class="col-1">
@@ -135,7 +215,6 @@ function htmlRapporto(proclamatore, rapporto) {
                     class="form-control"
                     name="Pubb[]"
                     id="Pubb-${proclamatore.id}" 
-                    value="${rapporto ? rapporto.Pubb : ""}" 
                     min="0" maxlength="5"
                     onchange="convalida(this)"
                 >
@@ -149,7 +228,6 @@ function htmlRapporto(proclamatore, rapporto) {
                     class="form-control"
                     name="Video[]"
                     id="Video-${proclamatore.id}" 
-                    value="${rapporto ? rapporto.Video : ""}" 
                     min="0" 
                     maxlength="5"
                     onchange="convalida(this)"
@@ -164,7 +242,6 @@ function htmlRapporto(proclamatore, rapporto) {
                     class="form-control"
                     name="Ore[]"
                     id="Ore-${proclamatore.id}" 
-                    value="${rapporto ? rapporto.Ore : ""}" 
                     min="0" 
                     maxlength="5"
                     step="0.25" 
@@ -180,7 +257,6 @@ function htmlRapporto(proclamatore, rapporto) {
                     class="form-control"
                     name="VU[]"
                     id="VU-${proclamatore.id}" 
-                    value="${rapporto ? rapporto.VU : ""}" 
                     min="0" 
                     maxlength="5"
                     onchange="convalida(this)"
@@ -195,7 +271,6 @@ function htmlRapporto(proclamatore, rapporto) {
                     class="form-control"
                     name="Studi[]"
                     id="Studi-${proclamatore.id}" 
-                    value="${rapporto ? rapporto.Studi : ""}" 
                     min="0" 
                     maxlength="5"
                     onchange="convalida(this)"
@@ -210,7 +285,6 @@ function htmlRapporto(proclamatore, rapporto) {
                     class="form-control"
                     name="Note[]"
                     id="Note-${proclamatore.id}"
-                    value="${rapporto ? rapporto.Note : ""}"
                     onchange="convalida(this)"
                 >
                 <label for="Note">Note</label>
@@ -227,13 +301,14 @@ async function salvaRapporti() {
         }, 2000);
         return
     }
+    $('#SalvaRapporti').prop("disabled", true)
     $("#ModalRapporti").modal("hide")
     $("[name='CP_Anag']").each(async function (indice, CP_Anag) {
         CP_Anag = $(CP_Anag).val()
         if ($("#Inc-" + CP_Anag).val() == "") {
             if ($(`[name='CP_Rap']:eq(${indice})`).val() != "") {
                 console.log('Cancella record')
-                let n = rapporti.findIndex((item) => item.id === Number($(`[name='CP_Rap']:eq(${indice})`).val()))
+                let n = rapporti.findIndex((item) => item.id == Number($(`[name='CP_Rap']:eq(${indice})`).val()))
                 rapporti.splice(n, 1)
             }
         } else {
@@ -243,12 +318,15 @@ async function salvaRapporti() {
                 // controlla se l'id è già presente
                 for (let i = 0; i < rapporti.length; i++) {
                     if (rapporti[i].id == id) {
-                        await sleep(2)
+                        setTimeout(() => {
+                            console.log('aspetto')
+                        }, 2);
                         id = new Date().getTime()
                     }
                 }
-                rapporti.push({
+                rapporti.unshift({
                     'CE_Anag': Number(CP_Anag),
+                    'Gr': Number($('#Gr-' + CP_Anag).val()),
                     'Mese': $('[name="mese"]').val(),
                     'Inc': $('#Inc-' + CP_Anag).val(),
                     'Pubb': Number($('#Pubb-' + CP_Anag).val()),
@@ -261,8 +339,14 @@ async function salvaRapporti() {
                 })
             } else {
                 console.log('Modifica')
-                let n = rapporti.findIndex((item) => item.id === Number($(`[name='CP_Rap']:eq(${indice})`).val()))
+                for (let i = 0; i < rapporti.length; i++) {
+                    if (rapporti[i].id == Number($(`[name='CP_Rap']:eq(${indice})`).val())) {
+                        n = i
+                        break
+                    }
+                }
                 rapporti[n].CE_Anag = Number(CP_Anag)
+                rapporti[n].Gr = Number($('#Gr-' + CP_Anag).val())
                 rapporti[n].Mese = $('[name="mese"]').val()
                 rapporti[n].Inc = $('#Inc-' + CP_Anag).val()
                 rapporti[n].Pubb = Number($('#Pubb-' + CP_Anag).val())
@@ -282,6 +366,7 @@ async function salvaRapporti() {
         return
     }
     toast(new Date().getTime(), "verde", `Dati salvati`)
+    $('#SalvaRapporti').prop("disabled", false)
     loadPage()
 }
 
@@ -306,7 +391,7 @@ async function convalida(dato) {
                 }
             }
             if ($("#Ore-" + CP_Anag).val() > 0) {
-                proc = proclamatori.find(item => item.id === Number(CP_Anag));
+                proc = proclamatori.find(item => item.id == Number(CP_Anag));
                 if (proc.PR_PS == "") {
                     $("#Inc-" + CP_Anag).val("p")
                 }
@@ -360,8 +445,6 @@ async function irregolare(id) {
             (item.CE_Anag == id) &&
             (item.Mese == `${mese.toLocaleString('it-IT', { year: 'numeric' })}-${mese.toLocaleString('it-IT', { month: '2-digit' })}`)
         ))
-        console.log(`${mese.toLocaleString('it-IT', { year: 'numeric' })}-${mese.toLocaleString('it-IT', { month: '2-digit' })}`)
-        console.log(rapporto)
         if (rapporto == undefined) {
             irr = false
         } else {
@@ -373,4 +456,23 @@ async function irregolare(id) {
         }
     }
     return x
+}
+
+function modalAvvisoRapporto(id_rap, nome) {
+    modalAvviso(`Sei sicuro di voler eliminare il rapporto di ${nome}?`, `elimRapporto(${id_rap})`)
+}
+
+async function elimRapporto(id_rap) {
+    $("#ModalAvviso").modal("hide")
+    try {
+        let n = rapporti.findIndex((item) => item.id == Number(id_rap))
+        rapporti.splice(n, 1)
+        result = await window.electronAPI.writeFile('rapporti', rapporti)
+    } catch (e) {
+        loadPage()
+        toast(new Date().getTime(), "rosso", e, 10000)
+        return
+    }
+    toast(new Date().getTime(), "verde", `Rapporto eliminato`)
+    loadPage()
 }

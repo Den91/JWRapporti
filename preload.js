@@ -14,13 +14,4 @@ contextBridge.exposeInMainWorld('electronAPI', {
     update: (callback) => ipcRenderer.on('update', callback),
     closeModalWindow: () => ipcRenderer.send('closeModalWindow'),
     openBrowserUpdate: (url) => ipcRenderer.invoke('openBrowserUpdate', url),
-    /*
-    getAll: (table) => ipcRenderer.invoke('getAll', table),
-    getRows: (table, select) => ipcRenderer.invoke('getRows', table, select),
-    insertTableContent: (table, array) => ipcRenderer.invoke('insertTableContent', table, array),
-    updateRow: (tableName, set, where) => ipcRenderer.invoke('updateRow', tableName, set, where),
-    deleteRow: (table, where) => ipcRenderer.invoke('deleteRow', table, where),
-    count: (table) => ipcRenderer.invoke('count', table),
-    sum: (table, where, fields) => ipcRenderer.invoke('sum', table, where, fields),
-    */
 })

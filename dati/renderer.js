@@ -50,7 +50,7 @@ async function loadPage() {
                 <button class="btn btn-danger"
                     type="button"
                     id="${anno}"  
-                    onclick="modalAvviso('${anno}')"
+                    onclick="modalAvvisoAnno('${anno}')"
                 >
                     <i class="bi bi-trash3"></i>
                 </button>
@@ -79,10 +79,8 @@ async function loadPage() {
     })
 }
 
-function modalAvviso(anno) {
-    $(".modal-body span").html(`Sei sicuro di voler eliminare l'anno ${anno}?`)
-    $("#ModalAvviso").modal("show")
-    $("#buttonModal").on("click", function () { elimAnno(anno) })
+function modalAvvisoAnno(anno) {
+    modalAvviso(`Sei sicuro di voler eliminare l'anno ${anno}?`, `elimAnno(${anno})`)
 }
 
 async function elimAnno(anno) {
