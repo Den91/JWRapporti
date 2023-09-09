@@ -1025,7 +1025,7 @@ async function fpdfS21Tutte(event, anno) {
             cartolina = []
             for (let mese of mesi) {
                 rapporto = { 'Mese': mese }
-                rap = rapporti.filter(item => ((item.Mese == mese) && (item.CE_Anag == proc.id)))[0]
+                rap = rapporti.filter(item => ((item.Mese == mese) && (item.CE_Anag == riga.id)))[0]
                 if (rap != undefined)
                     rapporto = rap
                 cartolina.push(rapporto)
@@ -1040,7 +1040,7 @@ async function fpdfS21Tutte(event, anno) {
                 cartolina = []
                 for (let mese of mesi) {
                     rapporto = { 'Mese': mese }
-                    rap = rapporti.filter(item => ((item.Mese == mese) && (item.CE_Anag == proc.id)))[0]
+                    rap = rapporti.filter(item => ((item.Mese == mese) && (item.CE_Anag == riga.id)))[0]
                     if (rap != undefined)
                         rapporto = rap
                     cartolina.push(rapporto)
@@ -1054,7 +1054,7 @@ async function fpdfS21Tutte(event, anno) {
             cartolina = []
             for (let mese of mesi) {
                 rapporto = { 'Mese': mese }
-                rap = rapporti.filter(item => ((item.Mese == mese) && (item.CE_Anag == proc.id)))[0]
+                rap = rapporti.filter(item => ((item.Mese == mese) && (item.CE_Anag == riga.id)))[0]
                 if (rap != undefined)
                     rapporto = rap
                 cartolina.push(rapporto)
