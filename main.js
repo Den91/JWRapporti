@@ -243,6 +243,10 @@ async function ottimizzaTabelle() {
         if (!rapporto.hasOwnProperty('Gr')) {
             proc = anagrafica.filter(item => item.id == rapporto.CE_Anag)
             rapporto.Gr = proc[0].Gr
+        } else {
+            if (rapporto.Gr == "") {
+                rapporto.Gr = null
+            }
         }
     })
     try {

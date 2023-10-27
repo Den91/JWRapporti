@@ -139,7 +139,7 @@ function ordinaTabella(th) {
 
 function getAnnoTeocratico() {
   let data = new Date()
-  let primoSet = new Date(data.getFullYear() + "-09-01")
+  let primoSet = new Date(data.getFullYear() + "-10-01")
   if (data < primoSet) {
     return data.getFullYear()
   }

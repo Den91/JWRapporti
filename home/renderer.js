@@ -88,6 +88,7 @@ function grafici() {
             studi.push(rapporti_mese.map(item => item.Studi).reduce((p, n) => p + n))
         }
     })
+    /*
     const canvas0 = new Chart($('#canvas0'), {
         type: 'line',
         data: {
@@ -132,6 +133,7 @@ function grafici() {
             }
         }
     })
+    */
     const canvas2 = new Chart($('#canvas2'), {
         type: 'line',
         data: {
@@ -154,6 +156,7 @@ function grafici() {
             }
         }
     })
+    /*
     const canvas3 = new Chart($('#canvas3'), {
         type: 'line',
         data: {
@@ -198,4 +201,5 @@ function grafici() {
             }
         }
     })
+    */
 }

@@ -1,9 +1,5 @@
 var anno
-var anni = [
-    getAnnoTeocratico(),
-    getAnnoTeocratico() - 1,
-    getAnnoTeocratico() - 2
-]
+var anni
 var pionieri
 
 $(window).resize(function () {
@@ -12,10 +8,27 @@ $(window).resize(function () {
 
 $(document).ready(async function () {
     navbar("pionieri")
-    anni.forEach(function (anno, indice) {
-        $('[name="selectAnno"]').append(`<option value="${anno}">${anno}</option>`)
+
+    rapporti = await window.electronAPI.readFile('rapporti')
+    mesi = [...new Set(rapporti.map(item => item.Mese))]
+    mesi.sort()
+    mesi.forEach(function (o, i) {
+        m = Number(o.slice(5, 7))
+        a = Number(o.slice(0, 4))
+        if (m >= 9) {
+            a++
+        }
+        mesi[i] = a
     })
-    $('[name="selectAnno"]').val(getAnno())
+    anni = [...new Set(mesi)]
+    anni.forEach(function (a, indice) {
+        $('[name="selectAnno"]').append(`<option value="${a}">${a}</option>`)
+    })
+    if (sessionStorage.getItem('anno')) {
+        $('[name="selectAnno"]').val(sessionStorage.getItem('anno'))
+    } else {
+        $('[name="selectAnno"]').val($('[name="selectAnno"] option:last').val())
+    }
     visualPionieri()
 })
 
@@ -36,7 +49,6 @@ async function visualPionieri() {
         $('#TablePionieri thead tr').append(`<th class="text-center">Totale</th>`)
         $('#TablePionieri thead tr').append(`<th class="text-center">Media</th>`)
         proclamatori = await window.electronAPI.readFile('anagrafica')
-        rapporti = await window.electronAPI.readFile('rapporti')
         pionieri = proclamatori.filter(item => ((item.PR_PS == 'PR') && (item.Elimina == '0')))
         for (pioniere of pionieri) {
             $('#TablePionieri tbody').append(`

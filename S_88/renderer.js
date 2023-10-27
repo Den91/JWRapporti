@@ -1,11 +1,7 @@
 var keysI = ['i1', 'i2', 'i3', 'i4', 'i5']
 var keysF = ['f1', 'f2', 'f3', 'f4', 'f5',]
 var anno
-var anni = [
-    getAnnoTeocratico(),
-    getAnnoTeocratico() - 1,
-    getAnnoTeocratico() - 2
-]
+var anni
 
 $(window).resize(function () {
     marginBody()
@@ -14,8 +10,20 @@ $(window).resize(function () {
 $(document).ready(async function () {
     navbar("S-88")
 
-    anni.forEach(function (anno, indice) {
-        $('[name="selectAnno"]').append(`<option value="${anno}">${anno}</option>`)
+    presenti = await window.electronAPI.readFile('presenti')
+    mesi = [...new Set(presenti.map(item => item.Mese))]
+    mesi.sort()
+    mesi.forEach(function (o, i) {
+        m = Number(o.slice(5, 7))
+        a = Number(o.slice(0, 4))
+        if (m >= 9) {
+            a++
+        }
+        mesi[i] = a
+    })
+    anni = [...new Set(mesi)]
+    anni.forEach(function (a, indice) {
+        $('[name="selectAnno"]').append(`<option value="${a}">${a}</option>`)
     })
     $('[name="selectAnno"]').val(getAnno())
     visualS88()
@@ -41,7 +49,6 @@ async function visualS88() {
                 year: 'numeric',
                 month: 'long'
             }))
-            presenti = await window.electronAPI.readFile('presenti')
             presenti_mese = presenti.filter(item => item.Mese == mesi[x])
             if (presenti_mese.length != 0) {
                 totI = cI = 0

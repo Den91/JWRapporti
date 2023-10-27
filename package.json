@@ -1,6 +1,6 @@
 {
   "name": "jwrapporti",
-  "version": "1.1.4",
+  "version": "1.2.0",
   "description": "Rapporti",
   "main": "main.js",
   "scripts": {
@@ -25,7 +25,8 @@
     "electron-pdf-window": "^1.0.12",
     "electron-updater": "^5.3.0",
     "jquery": "^3.7.0",
-    "node-fpdf": "^1.0.43"
+    "node-fpdf": "^1.0.43",
+    "npm": "^10.2.1"
   },
   "repository": {
     "type": "git",

@@ -4,11 +4,7 @@ var proc
 var proclamatori
 var gruppi
 var rapporti
-var anni = [
-    getAnnoTeocratico(),
-    getAnnoTeocratico() - 1,
-    getAnnoTeocratico() - 2
-]
+var anni
 
 $(window).resize(function () {
     marginBody()
@@ -17,10 +13,26 @@ $(window).resize(function () {
 $(document).ready(async function () {
     navbar("S-21")
 
-    anni.forEach(function (anno, indice) {
-        $('[name="selectAnno"]').append(`<option value="${anno}">${anno}</option>`)
+    rapporti = await window.electronAPI.readFile('rapporti')
+    mesi = [...new Set(rapporti.map(item => item.Mese))]
+    mesi.sort()
+    mesi.forEach(function (o, i) {
+        m = Number(o.slice(5, 7))
+        a = Number(o.slice(0, 4))
+        if (m >= 9) {
+            a++
+        }
+        mesi[i] = a
     })
-    $('[name="selectAnno"]').val(getAnno())
+    anni = [...new Set(mesi)]
+    anni.forEach(function (a, indice) {
+        $('[name="selectAnno"]').append(`<option value="${a}">${a}</option>`)
+    })
+    if (sessionStorage.getItem('anno')) {
+        $('[name="selectAnno"]').val(sessionStorage.getItem('anno'))
+    } else {
+        $('[name="selectAnno"]').val($('[name="selectAnno"] option:last').val())
+    }
 
     anagrafica = await window.electronAPI.readFile('anagrafica')
     proclamatori = anagrafica.filter(item => item.Elimina == '0')
@@ -69,7 +81,6 @@ $(document).ready(async function () {
     $('optgroup[label="Totali"]').append(`
                         <option value="pr">P. regolari e speciali congregazione</option>`)
     $('[name="selectProc"]').val(sessionStorage.getItem('proc'))
-    rapporti = await window.electronAPI.readFile('rapporti')
     visualS21()
 })
 

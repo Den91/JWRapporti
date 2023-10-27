@@ -44,3 +44,9 @@ v1.1.3
 
 v1.1.4
 - pdf cartoline: bug cartolina errata
+
+v1.2.0
+- update nuovi rapporti da ottobre 2023
+- S-21, pionieri: select anni calcolati in base ai rapporti inseriti
+- S-88: select anni calcolati in base ai presenti inseriti
+- home: grafico studi
