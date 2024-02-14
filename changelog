@@ -50,3 +50,11 @@ v1.2.0
 - S-21, pionieri: select anni calcolati in base ai rapporti inseriti
 - S-88: select anni calcolati in base ai presenti inseriti
 - home: grafico studi
+
+v1.2.1
+- Anagrafica: cambiato formato data GG/MM/YYYY in stampa elenco
+- Anagrafica: sistemato errore se un gruppo viene eliminato
+- home: rapporti mancanti mostrava proclamatori eliminati e inattivi
+- S-21: aggiunta cartolina totali
+- rapporti: sistemato errore se un gruppo viene eliminato
+- dipendenze aggiornate

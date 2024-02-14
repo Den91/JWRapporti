@@ -5,6 +5,7 @@ const os = require('os')
 const FPDF = require('node-fpdf')
 const { autoUpdater } = require('electron-updater');
 const log = require('electron-log');
+const Chart = require('chart.js')
 //const PDFWindowModule = require('electron-pdf-window')
 let updateWindow, mainWindow
 
@@ -356,9 +357,10 @@ async function fpdfAnagrafica() {
                     nome += ' (' + proc["Nome2"] + ')';
                 }
                 pdf.Cell(c2, row * 3, unescapeHtml(nome), border, 0, 'L', true);
+                var optionData = { day: 'numeric', month: 'numeric', year: 'numeric' }
                 if (proc["D_Nasc"] != "") {
                     var D_Nasc = new Date(proc["D_Nasc"]);
-                    pdf.Cell(c3, row, "Data nascita: " + D_Nasc.toLocaleDateString(), border, 0, 'L', true);
+                    pdf.Cell(c3, row, "Data nascita: " + D_Nasc.toLocaleString('it-IT', optionData), border, 0, 'L', true);
                 } else {
                     pdf.Cell(c3, row, "Data nascita:", border, 0, 'L', true);
                 }
@@ -368,7 +370,7 @@ async function fpdfAnagrafica() {
                 pdf.Cell(c1 + c2, row, "", 0, 0, 'L', false);
                 if (proc["D_Batt"] != "") {
                     var D_Batt = new Date(proc["D_Batt"]);
-                    pdf.Cell(c3, row, "Data battesimo: " + D_Batt.toLocaleDateString(), border, 0, 'L', true);
+                    pdf.Cell(c3, row, "Data battesimo: " + D_Batt.toLocaleString('it-IT', optionData), border, 0, 'L', true);
                 } else {
                     pdf.Cell(c3, row, "Data battesimo:", border, 0, 'L', true);
                 }
@@ -642,7 +644,7 @@ async function cartolinaFPDF(pdf, proc, cartolina, link_pdf, link_first_page = n
         if (proc["D_Nasc"] != "") {
             var D_Nasc = new Date(proc["D_Nasc"]);
             pdf.Cell(130, 8, "Data nascita: " +
-                D_Nasc.toLocaleString("it-IT", { day: "2-digit", month: '2-digit', year: 'numeric' }), 0, 0, 'L');
+                D_Nasc.toLocaleString("it-IT", { day: "numeric", month: 'long', year: 'numeric' }), 0, 0, 'L');
         } else {
             pdf.Cell(130, 8, "Data nascita:", 0, 0, 'L');
         }
@@ -683,7 +685,7 @@ async function cartolinaFPDF(pdf, proc, cartolina, link_pdf, link_first_page = n
         if (proc["D_Batt"] != "") {
             var D_Batt = new Date(proc["D_Batt"]);
             pdf.Cell(85, 8, "Data di immersione: " +
-                D_Batt.toLocaleString("it-IT", { day: "2-digit", month: '2-digit', year: 'numeric' }), 0, 0, 'L');
+                D_Batt.toLocaleString("it-IT", { day: "numeric", month: 'long', year: 'numeric' }), 0, 0, 'L');
         } else {
             pdf.Cell(85, 8, "Data di immersione:", 0, 0, 'L');
         }
@@ -833,15 +835,26 @@ async function fpdfS21Singola(event, anno, proc) {
                         ))
                     }
                 } else {
-                    rapporti_mese = rapporti.filter(item => (
-                        (item.Mese == mese) &&
-                        (item.Inc == proc.id)))
+                    if (proc.id == "tt") {
+                        rapporti_mese = rapporti.filter(item => (item.Mese == mese))
+                    } else {
+                        rapporti_mese = rapporti.filter(item => (
+                            (item.Mese == mese) &&
+                            (item.Inc == proc.id)))
+                    }
                 }
                 rapporto.N = rapporti_mese.length
                 if (rapporti_mese.length != 0) {
                     keys.forEach(function (key, indiceKeys) {
                         rapporto[key] = rapporti_mese.map(item => item[key]).reduce((p, n) => p + n)
                     })
+                    if (proc.id == "tt") {
+                        let p = rapporti_mese.filter(item => item.Inc == 'p')
+                        let pa = rapporti_mese.filter(item => item.Inc == 'pa')
+                        let pr = rapporti_mese.filter(item => item.Inc == 'pr')
+                        let ir = rapporti_mese.filter(item => item.Inc == 'ir')
+                        rapporto.Note = `P:${p.length} PA:${pa.length} PR:${pr.length} IR:${ir.length}`
+                    }
                 }
             } else {
                 rap = rapporti.filter(item => ((item.Mese == mese) && (item.CE_Anag == proc.id)))[0]
@@ -1021,6 +1034,8 @@ async function fpdfS21Tutte(event, anno) {
         pdf.Cell(mm_colonna, 8, 'Pionieri Ausiliari', 0, 0, 'L', false, link_pdf_tot['pa']);
         link_pdf_tot['pr'] = pdf.AddLink()
         pdf.Cell(mm_colonna, 8, 'Pionieri Regolari e Speciali', 0, 0, 'L', false, link_pdf_tot['pr']);
+        link_pdf_tot['tt'] = pdf.AddLink()
+        pdf.Cell(mm_colonna, 8, 'Totali congregazione', 0, 0, 'L', false, link_pdf_tot['tt']);
         pdf.Ln(8)
 
         for (riga of pionieri) {
@@ -1247,6 +1262,28 @@ async function fpdfS21Tutte(event, anno) {
         }
         await cartolinaFPDF(pdf, { id: 'pr', Nome: "Pionieri regolari congregazione" }, cartolina,
             link_pdf_tot['pr'], link_first_page)
+
+        pdf.AddPage()
+        pdf.SetY(3)
+        cartolina = []
+        for (let mese of mesi) {
+            rapporto = { 'Mese': mese }
+            rapporti_mese = rapporti.filter(item => (item.Mese == mese))
+            rapporto.N = rapporti_mese.length
+            if (rapporti_mese.length != 0) {
+                keys.forEach(function (key, indiceKeys) {
+                    rapporto[key] = rapporti_mese.map(item => item[key]).reduce((p, n) => p + n)
+                })
+                let p = rapporti_mese.filter(item => item.Inc == 'p')
+                let pa = rapporti_mese.filter(item => item.Inc == 'pa')
+                let pr = rapporti_mese.filter(item => item.Inc == 'pr')
+                let ir = rapporti_mese.filter(item => item.Inc == 'ir')
+                rapporto.Note = `P:${p.length} PA:${pa.length} PR:${pr.length} IR:${ir.length}`
+            }
+            cartolina.push(rapporto)
+        }
+        await cartolinaFPDF(pdf, { id: 'tt', Nome: "Totali congregazione" }, cartolina,
+            link_pdf_tot['tt'], link_first_page)
 
         try {
             pdf.Output('F', path.join(filePaths[0], `S-21 complete ${anno}.pdf`))

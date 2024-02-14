@@ -1,5 +1,6 @@
 var proclamatori
 var rapporti
+var presenti
 const oggi = new Date()
 
 $(window).resize(function () {
@@ -19,6 +20,15 @@ $(document).ready(async function () {
     })
 
     rapporti = await window.electronAPI.readFile('rapporti')
+
+    presenti = await window.electronAPI.readFile('presenti')
+    presenti.sort(function (a, b) {
+        if (a.Mese < b.Mese)
+            return -1
+        if (a.Mese > b.Mese)
+            return 1
+        return 0
+    })
 
     var unAnnoBattezzati = $.grep(proclamatori, function (item) {
         let d = new Date(item.D_Batt)
@@ -57,149 +67,54 @@ function rapportiMancanti() {
     let mese = new Date()
     mese.setMonth(oggi.getMonth() - 1);
     for (proc of proclamatori) {
-        m = `${mese.toLocaleString('it-IT', {
-            year: 'numeric'
-        })}-${mese.toLocaleString('it-IT', {
-            month: '2-digit'
-        })}`
-        rapporti_mese = rapporti.filter(i => (i.Mese == m) && (i.CE_Anag == proc.id))
-        if (rapporti_mese.length == 0) {
-            $('#divRapportiMancanti').removeClass('d-none')
-            $('#divElenco').append(`<div class="col-2 py-1"><i class="bi bi-person-fill"></i> ${proc.Nome}</div>`)
+        if (proc.Elimina == "0" && proc.Attivo == "1") {
+            m = `${mese.toLocaleString('it-IT', {
+                year: 'numeric'
+            })}-${mese.toLocaleString('it-IT', {
+                month: '2-digit'
+            })}`
+            rapporti_mese = rapporti.filter(i => (i.Mese == m) && (i.CE_Anag == proc.id))
+            if (rapporti_mese.length == 0) {
+                $('#divRapportiMancanti').removeClass('d-none')
+                $('#divElenco').append(`<div class="col-2 py-1"><i class="bi bi-person-fill"></i> ${proc.Nome}</div>`)
+            }
         }
     }
 }
 
 function grafici() {
-    let ore = []
-    let pubb = []
-    let video = []
-    let vu = []
     let studi = []
+    let presentiGrafico = []
     let anno = getAnnoTeocratico()
     let mesi = mesiAnnoTeocratico(anno)
     mesi.forEach(m => {
         rapporti_mese = rapporti.filter(item => item.Mese == m)
         if (rapporti_mese.length > 0) {
-            ore.push(rapporti_mese.map(item => item.Ore).reduce((p, n) => p + n))
-            pubb.push(rapporti_mese.map(item => item.Pubb).reduce((p, n) => p + n))
-            video.push(rapporti_mese.map(item => item.Video).reduce((p, n) => p + n))
-            vu.push(rapporti_mese.map(item => item.VU).reduce((p, n) => p + n))
             studi.push(rapporti_mese.map(item => item.Studi).reduce((p, n) => p + n))
         }
     })
-    /*
-    const canvas0 = new Chart($('#canvas0'), {
-        type: 'line',
-        data: {
-            labels: mesi,
-            datasets: [
-                {
-                    label: 'Ore',
-                    data: ore,
-                    fill: false,
-                    borderColor: 'rgb(254, 100, 132)',
-                    tension: 0
-                },
-            ]
-        },
-        options: {
-            scales: {
-                y: {
-                    suggestedMin: 0
+    new Chart(
+        $('#canvasStudi'),
+        {
+            type: 'line',
+            data: {
+                labels: mesi,
+                datasets: [
+                    {
+                        label: 'Studi',
+                        data: studi,
+                        fill: false,
+                        borderColor: 'rgb(255, 205, 97)',
+                    },
+                ]
+            },
+            options: {
+                scales: {
+                    y: {
+                        suggestedMin: 0
+                    }
                 }
             }
         }
-    })
-    const canvas1 = new Chart($('#canvas1'), {
-        type: 'line',
-        data: {
-            labels: mesi,
-            datasets: [
-                {
-                    label: 'Visite',
-                    data: vu,
-                    fill: false,
-                    borderColor: 'rgb(56, 162, 232)',
-                    tension: 0
-                },
-            ]
-        },
-        options: {
-            scales: {
-                y: {
-                    suggestedMin: 0
-                }
-            }
-        }
-    })
-    */
-    const canvas2 = new Chart($('#canvas2'), {
-        type: 'line',
-        data: {
-            labels: mesi,
-            datasets: [
-                {
-                    label: 'Studi',
-                    data: studi,
-                    fill: false,
-                    borderColor: 'rgb(255, 205, 97)',
-                    tension: 0
-                },
-            ]
-        },
-        options: {
-            scales: {
-                y: {
-                    suggestedMin: 0
-                }
-            }
-        }
-    })
-    /*
-    const canvas3 = new Chart($('#canvas3'), {
-        type: 'line',
-        data: {
-            labels: mesi,
-            datasets: [
-                {
-                    label: 'Pubblicazioni',
-                    data: pubb,
-                    fill: false,
-                    borderColor: 'rgb(78, 192, 191)',
-                    tension: 0
-                },
-            ]
-        },
-        options: {
-            scales: {
-                y: {
-                    suggestedMin: 0
-                }
-            }
-        }
-    })
-    const canvas4 = new Chart($('#canvas4'), {
-        type: 'line',
-        data: {
-            labels: mesi,
-            datasets: [
-                {
-                    label: 'Video',
-                    data: video,
-                    fill: false,
-                    borderColor: 'rgb(152, 103, 250)',
-                    tension: 0
-                },
-            ]
-        },
-        options: {
-            scales: {
-                y: {
-                    suggestedMin: 0
-                }
-            }
-        }
-    })
-    */
+    )
 }

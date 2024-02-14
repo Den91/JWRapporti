@@ -2,6 +2,7 @@ var co
 var gruppi
 var proclamatori
 var procEliminati
+var rapporti
 
 $(document).ready(async function () {
     navbar("anagrafica")
@@ -14,6 +15,7 @@ $(window).resize(function () {
 })
 
 async function loadPage() {
+    rapporti = await window.electronAPI.readFile('rapporti')
     visualCO()
     visualGruppi()
     visualProclamatori()
@@ -177,11 +179,24 @@ async function eliminaGruppo(CP_Gruppo) {
         proclamatori.forEach(function (proc, indice) {
             if (proc.Gr == Number(CP_Gruppo)) {
                 proclamatori[indice].Gr = ''
-                console.log(proclamatori[indice])
             }
         })
         try {
             result = await window.electronAPI.writeFile('anagrafica', proclamatori)
+        } catch (e) {
+            loadPage()
+            toast(new Date().getTime(), "rosso", e, 10000)
+            return
+        }
+    }
+    if (rapporti.length > 0) {
+        rapporti.forEach(function (rap, indice) {
+            if (rap.Gr == Number(CP_Gruppo)) {
+                rapporti[indice].Gr = ''
+            }
+        })
+        try {
+            result = await window.electronAPI.writeFile('rapporti', rapporti)
         } catch (e) {
             loadPage()
             toast(new Date().getTime(), "rosso", e, 10000)

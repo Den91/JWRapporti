@@ -85,7 +85,12 @@ async function loadPage() {
                     if (rapporto.Gr == null) {
                         gruppo = ''
                     } else {
-                        gruppo = gruppi.find(item => item.id == rapporto.Gr)['Num']
+                        gruppo = gruppi.find(item => item.id == rapporto.Gr)
+                        if (gruppo != undefined) {
+                            gruppo = gruppo.Num
+                        } else {
+                            gruppo = ''
+                        }
                     }
                     $("#TBodyRapporti").append($('<tr></tr>'))
                     $("#TBodyRapporti tr:last").append($(`<td>${gruppo}</td>`))

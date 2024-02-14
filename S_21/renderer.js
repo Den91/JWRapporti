@@ -80,6 +80,8 @@ $(document).ready(async function () {
                         <option value="pa">P. ausiliari congregazione</option>`)
     $('optgroup[label="Totali"]').append(`
                         <option value="pr">P. regolari e speciali congregazione</option>`)
+    $('optgroup[label="Totali"]').append(`
+                        <option value="tt">Totali congregazione</option>`)
     $('[name="selectProc"]').val(sessionStorage.getItem('proc'))
     visualS21()
 })
@@ -105,6 +107,8 @@ async function visualS21() {
                 $('#Nome').html('Pionieri ausiliari congregazione')
             if (id_proc == "pr")
                 $('#Nome').html('Pionieri regolari e speciali congregazione')
+            if (id_proc == "tt")
+                $('#Nome').html('Totali congregazione')
             if (id_proc.length > 2) {
                 gruppoStraniero = id_proc.split('-')
                 if (gruppoStraniero[1] == 'ita') {
@@ -220,9 +224,13 @@ async function visualS21() {
                         ))
                     }
                 } else {
-                    rapporti_mese = rapporti.filter(item => (
-                        (item.Mese == mesi[indice]) &&
-                        (item.Inc == id_proc)))
+                    if (id_proc == "tt") {
+                        rapporti_mese = rapporti.filter(item => (item.Mese == mesi[indice]))
+                    } else {
+                        rapporti_mese = rapporti.filter(item => (
+                            (item.Mese == mesi[indice]) &&
+                            (item.Inc == id_proc)))
+                    }
                 }
                 rapporto = {}
                 rapporto.N = rapporti_mese.length
@@ -230,11 +238,17 @@ async function visualS21() {
                     keys.forEach(function (key, indiceKeys) {
                         rapporto[key] = rapporti_mese.map(item => item[key]).reduce((p, n) => p + n)
                     })
+                    if (id_proc == "tt") {
+                        let p = rapporti_mese.filter(item => item.Inc == 'p')
+                        let pa = rapporti_mese.filter(item => item.Inc == 'pa')
+                        let pr = rapporti_mese.filter(item => item.Inc == 'pr')
+                        let ir = rapporti_mese.filter(item => item.Inc == 'ir')
+                        rapporto.Note = `P:${p.length} PA:${pa.length} PR:${pr.length} IR:${ir.length}`
+                    }
                 }
             } else {
                 rapporto = rapporti.filter(item => ((item.Mese == mesi[indice]) && (item.CE_Anag == Number(id_proc))))
                 rapporto = rapporto[0]
-
             }
             if (rapporto) {
                 $(`table tbody tr:eq(${indice}) td:eq(${1})`).html(rapporto.Inc || rapporto.N)
@@ -270,6 +284,9 @@ async function fpdfSingola() {
         }
         if (proc.id == "pr") {
             proc.Nome = "Pionieri regolari e speciali congregazione"
+        }
+        if (proc.id == "tt") {
+            proc.Nome = "Totali congregazione"
         }
         if (proc.id.length > 2) {
             gruppoStraniero = id_proc.split('-')
