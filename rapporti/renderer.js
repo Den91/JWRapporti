@@ -488,7 +488,6 @@ async function salvaRapporti() {
         CP_Anag = $(CP_Anag).val()
         if ($('#Ore-' + CP_Anag).val() == ''
             && ($('#Inc-' + CP_Anag).val() == 'pa'
-                || $('#Inc-' + CP_Anag).val() == 'pr'
                 || $('#Inc-' + CP_Anag).val() == 'ps')) {
             $("#Ore-" + CP_Anag).addClass("is-invalid")
         }

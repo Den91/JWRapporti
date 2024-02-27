@@ -86,7 +86,7 @@ $(document).ready(async function () {
     visualS21()
 })
 
-async function visualS21() {
+function visualS21() {
     anno = $('[name="selectAnno"]').val()
     id_proc = $('[name="selectProc"]').val()
     sessionStorage.setItem('anno', anno)

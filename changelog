@@ -58,3 +58,6 @@ v1.2.1
 - S-21: aggiunta cartolina totali
 - rapporti: sistemato errore se un gruppo viene eliminato
 - dipendenze aggiornate
+
+v1.2.2
+- Inserimento rapporti: se un pr non fa ore non viene segnato errore
