@@ -85,8 +85,10 @@ function rapportiMancanti() {
 function grafici() {
     let studi = []
     let presentiGrafico = []
-    let anno = getAnnoTeocratico()
-    let mesi = mesiAnnoTeocratico(anno)
+
+    mesi = [...new Set(rapporti.map(item => item.Mese))]
+    mesi.sort()
+    console.log(mesi)
     mesi.forEach(m => {
         rapporti_mese = rapporti.filter(item => item.Mese == m)
         if (rapporti_mese.length > 0) {

@@ -1,4 +1,4 @@
-var keys = ['Pubb', 'Video', 'Ore', 'VU', 'Studi']
+var keys = ['Studi', 'Ore']
 var p
 var pa
 var pr
@@ -20,11 +20,11 @@ $(document).ready(async function () {
 async function visualS1() {
     mese = $('[name="mese"]').val()
     sessionStorage.setItem('mese', mese)
-    p = { n: 0, Pubb: 0, Video: 0, Ore: 0, VU: 0, Studi: 0 }
-    pa = { n: 0, Pubb: 0, Video: 0, Ore: 0, VU: 0, Studi: 0 }
-    pr = { n: 0, Pubb: 0, Video: 0, Ore: 0, VU: 0, Studi: 0 }
-    ps = { n: 0, Pubb: 0, Video: 0, Ore: 0, VU: 0, Studi: 0 }
-    tot = { n: 0, Pubb: 0, Video: 0, Ore: 0, VU: 0, Studi: 0 }
+    p = { n: 0, Studi: 0 }
+    pa = { n: 0, Studi: 0, Ore: 0 }
+    pr = { n: 0, Studi: 0, Ore: 0 }
+    ps = { n: 0, Studi: 0, Ore: 0 }
+    tot = { n: 0, Studi: 0, Ore: 0 }
     ir = 0
     $("#CardTotali").addClass("d-none")
     if (mese != "") {
@@ -33,9 +33,7 @@ async function visualS1() {
         rapporti_mese.forEach(function (rap, indice) {
             if (rap.Inc == 'p') {
                 p.n++
-                keys.forEach(function (key, indice) {
-                    p[key] += rap[key]
-                })
+                p.Studi += rap.Studi
             }
             if (rap.Inc == 'pa') {
                 pa.n++
@@ -78,41 +76,29 @@ async function visualS1() {
             <tr>
                 <td>Proclamatori</td>
                 <td class="text-center">${p.n}</td>
-                <td class="text-center">${p.Pubb}</td>
-                <td class="text-center">${p.Video}</td>
-                <td class="text-center">${p.Ore}</td>
-                <td class="text-center">${p.VU}</td>
                 <td class="text-center">${p.Studi}</td>
+                <td class="text-center"></td>
             </tr>`)
         $("#TableTotali tbody").append(`
             <tr>
                 <td>Pionieri ausiliari</td>
                 <td class="text-center">${pa.n}</td>
-                <td class="text-center">${pa.Pubb}</td>
-                <td class="text-center">${pa.Video}</td>
-                <td class="text-center">${pa.Ore}</td>
-                <td class="text-center">${pa.VU}</td>
                 <td class="text-center">${pa.Studi}</td>
+                <td class="text-center">${pa.Ore}</td>
             </tr>`)
         $("#TableTotali tbody").append(`
             <tr>
                 <td>Pionieri regolari</td>
                 <td class="text-center">${pr.n}</td>
-                <td class="text-center">${pr.Pubb}</td>
-                <td class="text-center">${pr.Video}</td>
-                <td class="text-center">${pr.Ore}</td>
-                <td class="text-center">${pr.VU}</td>
                 <td class="text-center">${pr.Studi}</td>
+                <td class="text-center">${pr.Ore}</td>
             </tr>`)
         $("#TableTotali tfoot").append(`
             <tr>
                 <td>Totale rapporti</td>
                 <td class="text-center">${tot.n}</td>
-                <td class="text-center">${tot.Pubb}</td>
-                <td class="text-center">${tot.Video}</td>
-                <td class="text-center">${tot.Ore}</td>
-                <td class="text-center">${tot.VU}</td>
                 <td class="text-center">${tot.Studi}</td>
+                <td class="text-center">${tot.Ore}</td>
             </tr>`)
         $("#proc_attivi").html(tot.n + ir)
 

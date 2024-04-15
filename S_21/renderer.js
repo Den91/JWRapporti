@@ -198,14 +198,9 @@ function visualS21() {
             }
         }
         mesi = mesiAnnoTeocratico(anno)
-        somma = { 'Pubb': 0, 'Video': 0, 'Ore': 0, 'VU': 0, 'Studi': 0 }
-        conta = 0
+        somma = 0
         for (indice = 0; indice < 12; indice++) {
             $(`table tbody tr:eq(${indice}) td:not(:eq(0))`).html('')
-            $(`table tbody tr:eq(${indice}) td:eq(${0})`).html(new Date(mesi[indice]).toLocaleString('it-IT', {
-                year: 'numeric',
-                month: 'long'
-            }))
             if (isNaN(id_proc)) {
                 if (id_proc.length > 2) {
                     gruppoStraniero = id_proc.split('-')
@@ -235,41 +230,51 @@ function visualS21() {
                 rapporto = {}
                 rapporto.N = rapporti_mese.length
                 if (rapporti_mese.length != 0) {
-                    keys.forEach(function (key, indiceKeys) {
-                        rapporto[key] = rapporti_mese.map(item => item[key]).reduce((p, n) => p + n)
-                    })
-                    if (id_proc == "tt") {
-                        let p = rapporti_mese.filter(item => item.Inc == 'p')
-                        let pa = rapporti_mese.filter(item => item.Inc == 'pa')
-                        let pr = rapporti_mese.filter(item => item.Inc == 'pr')
-                        let ir = rapporti_mese.filter(item => item.Inc == 'ir')
-                        rapporto.Note = `P:${p.length} PA:${pa.length} PR:${pr.length} IR:${ir.length}`
+                    rapporto.Studi = rapporti_mese.map(item => item.Studi).reduce((p, n) => p + n)
+                    switch (id_proc) {
+                        case "pa":
+                        case "pr":
+                            rapporto.Ore = rapporti_mese.map(item => item.Ore).reduce((p, n) => p + n)
+                            break;
+                        case "tt":
+                            rapporto.Ore = rapporti_mese.map(item => item.Inc != "p" ? item.Ore : 0).reduce((p, n) => p + n)
+                            let p = rapporti_mese.filter(item => item.Inc == 'p')
+                            let pa = rapporti_mese.filter(item => item.Inc == 'pa')
+                            let pr = rapporti_mese.filter(item => item.Inc == 'pr')
+                            let ir = rapporti_mese.filter(item => item.Inc == 'ir')
+                            rapporto.Note = `P:${p.length} PA:${pa.length} PR:${pr.length} IR:${ir.length}`
+                            break;
                     }
                 }
             } else {
                 rapporto = rapporti.filter(item => ((item.Mese == mesi[indice]) && (item.CE_Anag == Number(id_proc))))
                 rapporto = rapporto[0]
             }
+            $(`table tbody tr:eq(${indice}) td:eq(${0})`).html(new Date(mesi[indice]).toLocaleString('it-IT', {
+                year: 'numeric',
+                month: 'long'
+            }))
+            console.log(rapporto)
             if (rapporto) {
-                $(`table tbody tr:eq(${indice}) td:eq(${1})`).html(rapporto.Inc || rapporto.N)
-                if ((rapporto.hasOwnProperty('N') && rapporto.N != 0) || rapporto.hasOwnProperty('Inc')) {
-                    conta++
-                    keys.forEach(function (key, indiceKeys) {
-                        somma[key] += Number(rapporto[key])
-                        $(`table tbody tr:eq(${indice}) td:eq(${indiceKeys + 2})`).html(rapporto[key] || '')
-                    })
-                    $(`table tbody tr:eq(${indice}) td:eq(${7})`).html(rapporto.Note)
+                if (rapporto.hasOwnProperty('Inc')) {
+                    $(`table tbody tr:eq(${indice}) td:eq(${1})`).html(rapporto.Inc)
+                    $(`table tbody tr:eq(${indice}) td:eq(2)`).html(rapporto.Studi)
+                    if (rapporto.Inc == "pa" || rapporto.Inc == "pr" || rapporto.Inc == "ps") {
+                        somma += Number(rapporto.Ore)
+                        $(`table tbody tr:eq(${indice}) td:eq(3)`).html(rapporto.Ore)
+                    }
+                    $(`table tbody tr:eq(${indice}) td:eq(4)`).html(rapporto.Note)
                 }
-            } else {
-                for (x = 1; x < 8; x++) {
-                    $(`table tbody tr:eq(${indice}) td:eq(${x})`).html('')
+                if ((rapporto.hasOwnProperty('N') && rapporto.N != 0)) {
+                    $(`table tbody tr:eq(${indice}) td:eq(${1})`).html(rapporto.N)
+                    $(`table tbody tr:eq(${indice}) td:eq(2)`).html(rapporto.Studi)
+                    somma += Number(rapporto.Ore)
+                    $(`table tbody tr:eq(${indice}) td:eq(3)`).html(rapporto.Ore)
+                    $(`table tbody tr:eq(${indice}) td:eq(4)`).html(rapporto.Note)
                 }
             }
         }
-        keys.forEach(function (key, indiceKeys) {
-            $(`table tbody tr:eq(${12}) th:eq(${indiceKeys + 2})`).html(somma[key])
-            $(`table tbody tr:eq(${13}) th:eq(${indiceKeys + 2})`).html(Number(somma[key] / conta).toFixed(2) || '')
-        })
+        $(`table tbody tr:eq(12) th:eq(3)`).html(somma)
     }
 }
 

@@ -588,7 +588,7 @@ async function cartolinaFPDF(pdf, proc, cartolina, link_pdf, link_first_page = n
     }
 
     pdf.SetFont('Arial', 'B', 10);
-    pdf.Cell(190, 10, "REGISTRAZIONE DEL PROCLAMATORE DI CONGREGAZIONE", 0, 0, 'C');
+    pdf.Cell(187, 10, "REGISTRAZIONE DEL PROCLAMATORE DI CONGREGAZIONE", 0, 0, 'C');
     if (link_first_page != null) {
         pdf.SetFont('ZapfDingbats', '', 11);
         pdf.Cell(10, 10, "s", 0, 0, 'C', false, 1);
@@ -740,59 +740,63 @@ async function cartolinaFPDF(pdf, proc, cartolina, link_pdf, link_first_page = n
         pdf.Ln(8);
     }
 
+    var c1 = 45
+    var c24 = 25
+    var c5 = 70
     //tabella
-    pdf.Cell(36, 7, "Mese", 1, 0, 'L');
+    pdf.Cell(c1, 7, "Mese", 1, 0, 'C');
     if (isNaN(proc.id)) {
-        pdf.Cell(18, 7, "N", 1, 0, 'C');
+        pdf.Cell(c24, 7, "N", 1, 0, 'C');
     } else {
-        pdf.Cell(18, 7, "Inc", 1, 0, 'C');
+        pdf.Cell(c24, 7, "Inc", 1, 0, 'C');
     }
-    pdf.Cell(18, 7, "Pubb", 1, 0, 'C');
-    pdf.Cell(18, 7, "Video", 1, 0, 'C');
-    pdf.Cell(18, 7, "Ore", 1, 0, 'C');
-    pdf.Cell(18, 7, "Visite", 1, 0, 'C');
-    pdf.Cell(18, 7, "Studi", 1, 0, 'C');
-    pdf.Cell(48, 7, "Note", 1, 0, 'L');
+    pdf.Cell(c24, 7, "Studi", 1, 0, 'C');
+    pdf.Cell(c24, 7, "Ore", 1, 0, 'C');
+    pdf.Cell(c5, 7, "Note", 1, 0, 'C');
     pdf.Ln(7);
 
-    var somma = { 'Pubb': 0, 'Video': 0, 'Ore': 0, 'VU': 0, 'Studi': 0 }
-    var conta = 0
-    var keys = ['Pubb', 'Video', 'Ore', 'VU', 'Studi']
+    var somma = 0
     for (let rapporto of cartolina) {
-        pdf.Cell(36, 7,
+        pdf.Cell(c1, 7,
             new Date(rapporto.Mese).toLocaleString("it-IT", { year: 'numeric', month: 'long' }), 1, 0, 'L');
-        pdf.Cell(18, 7, rapporto.Inc || rapporto.N, 1, 0, 'C');
-        if ((rapporto.hasOwnProperty('N') && rapporto.N != 0) || rapporto.hasOwnProperty('Inc')) {
-            conta++
-            for (key of keys) {
-                somma[key] += Number(rapporto[key])
-                pdf.Cell(18, 7, rapporto[key] || '', 1, 0, 'C');
+        if (rapporto.hasOwnProperty('Inc')) {
+            pdf.Cell(c24, 7, rapporto.Inc, 1, 0, 'C')
+            pdf.Cell(c24, 7, rapporto.Studi || '', 1, 0, 'C');
+            if (rapporto.Inc == "pa" || rapporto.Inc == "pr" || rapporto.Inc == "ps") {
+                somma += Number(rapporto.Ore)
+                pdf.Cell(c24, 7, rapporto.Ore, 1, 0, 'C');
+            } else {
+                pdf.Cell(c24, 7, '', 1, 0, 'C');
             }
-            pdf.Cell(48, 7, unescapeHtml(rapporto.Note || ''), 1, 0, 'L');
+            pdf.Cell(c5, 7, unescapeHtml(rapporto.Note || ''), 1, 0, 'L');
+        } else if (rapporto.hasOwnProperty('N') && rapporto.N != 0) {
+            pdf.Cell(c24, 7, rapporto.N, 1, 0, 'C');
+            pdf.Cell(c24, 7, rapporto.Studi || '', 1, 0, 'C');
+            if (proc.id != 'p') {
+                somma += Number(rapporto.Ore)
+                pdf.Cell(c24, 7, rapporto.Ore, 1, 0, 'C');
+            } else {
+                pdf.Cell(c24, 7, '', 1, 0, 'C');
+            }
+            pdf.Cell(c5, 7, unescapeHtml(rapporto.Note || ''), 1, 0, 'L');
         } else {
-            for (key of keys) {
-                pdf.Cell(18, 7, '', 1, 0, 'C');
-            }
-            pdf.Cell(48, 7, '', 1, 0, 'L');
+            pdf.Cell(c24, 7, '', 1, 0, 'C');
+            pdf.Cell(c24, 7, '', 1, 0, 'C');
+            pdf.Cell(c24, 7, '', 1, 0, 'C');
+            pdf.Cell(c5, 7, '', 1, 0, 'L');
         }
         pdf.Ln(7);
     }
 
-    pdf.Cell(36, 7, "Totale", 1, 0, 'L');
-    pdf.Cell(18, 7, "", 1, 0, 'C');
-    for (key of keys) {
-        pdf.Cell(18, 7, somma[key], 1, 0, 'C');
+    pdf.Cell(c1 + c24, 7, "", 0, 0, 'L');
+    pdf.Cell(c24, 7, "Totale", 1, 0, 'C');
+    if (somma != 0) {
+        pdf.Cell(c24, 7, somma, 1, 0, 'C');
+    } else {
+        pdf.Cell(c24, 7, '', 1, 0, 'C');
     }
-    pdf.Cell(48, 7, "", 1, 0, 'L');
-    pdf.Ln(7);
-
-    pdf.Cell(36, 7, "Media", 1, 0, 'L');
-    pdf.Cell(18, 7, "", 1, 0, 'C');
-    for (key of keys) {
-        pdf.Cell(18, 7, Number(somma[key] / conta).toFixed(2) || '', 1, 0, 'C');
-    }
-    pdf.Cell(48, 7, "", 1, 0, 'L');
-    pdf.Ln(10);
+    pdf.Cell(c5, 7, "", 1, 0, 'L');
+    pdf.Ln(7)
 }
 
 async function fpdfS21Singola(event, anno, proc) {
@@ -804,7 +808,6 @@ async function fpdfS21Singola(event, anno, proc) {
         pdf.SetFont('Arial', '', 10);
         pdf.SetTextColor(0, 0, 0);
         pdf.SetAutoPageBreak(1, 3);
-        pdf.SetMargins(3, 3);
         pdf.SetY(3);
         pdf.AddPage();
 
@@ -812,7 +815,6 @@ async function fpdfS21Singola(event, anno, proc) {
         gruppi = await readFile(null, 'gruppi')
         anagrafica = await readFile(null, 'anagrafica')
         var mesi = mesiAnnoTeocratico(anno)
-        var keys = ['Pubb', 'Video', 'Ore', 'VU', 'Studi']
 
         cartolina = []
         for (let mese of mesi) {
@@ -845,9 +847,10 @@ async function fpdfS21Singola(event, anno, proc) {
                 }
                 rapporto.N = rapporti_mese.length
                 if (rapporti_mese.length != 0) {
-                    keys.forEach(function (key, indiceKeys) {
-                        rapporto[key] = rapporti_mese.map(item => item[key]).reduce((p, n) => p + n)
-                    })
+                    rapporto.Studi = rapporti_mese.map(item => item.Studi).reduce((p, n) => p + n)
+                    if (proc.id != "p") {
+                        rapporto.Ore = rapporti_mese.map(item => item.Ore).reduce((p, n) => p + n)
+                    }
                     if (proc.id == "tt") {
                         let p = rapporti_mese.filter(item => item.Inc == 'p')
                         let pa = rapporti_mese.filter(item => item.Inc == 'pa')
@@ -882,7 +885,7 @@ async function fpdfS21Tutte(event, anno) {
         return
     } else {
         var mesi = mesiAnnoTeocratico(anno)
-        var keys = ['Pubb', 'Video', 'Ore', 'VU', 'Studi']
+        var keys = ['Studi', 'Ore']
         let mm_colonna = 48;
         let mm_x = 0;
         let link_pdf = {}
@@ -1094,9 +1097,7 @@ async function fpdfS21Tutte(event, anno) {
                     rapporto = { 'Mese': mese }
                     rapporto.N = rapporti_mese.length
                     if (rapporti_mese.length != 0) {
-                        keys.forEach(function (key, indiceKeys) {
-                            rapporto[key] = rapporti_mese.map(item => item[key]).reduce((p, n) => p + n)
-                        })
+                        rapporto.Studi = rapporti_mese.map(item => item.Studi).reduce((p, n) => p + n)
                     }
                     cartolina.push(rapporto)
                 }
@@ -1160,9 +1161,7 @@ async function fpdfS21Tutte(event, anno) {
                 rapporto = { 'Mese': mese }
                 rapporto.N = rapporti_mese.length
                 if (rapporti_mese.length != 0) {
-                    keys.forEach(function (key, indiceKeys) {
-                        rapporto[key] = rapporti_mese.map(item => item[key]).reduce((p, n) => p + n)
-                    })
+                    rapporto.Studi = rapporti_mese.map(item => item.Studi).reduce((p, n) => p + n)
                 }
                 cartolina.push(rapporto)
             }
@@ -1220,9 +1219,7 @@ async function fpdfS21Tutte(event, anno) {
             rapporto = { 'Mese': mese }
             rapporto.N = rapporti_mese.length
             if (rapporti_mese.length != 0) {
-                keys.forEach(function (key, indiceKeys) {
-                    rapporto[key] = rapporti_mese.map(item => item[key]).reduce((p, n) => p + n)
-                })
+                rapporto.Studi = rapporti_mese.map(item => item.Studi).reduce((p, n) => p + n)
             }
             cartolina.push(rapporto)
         }
@@ -1271,14 +1268,13 @@ async function fpdfS21Tutte(event, anno) {
             rapporti_mese = rapporti.filter(item => (item.Mese == mese))
             rapporto.N = rapporti_mese.length
             if (rapporti_mese.length != 0) {
-                keys.forEach(function (key, indiceKeys) {
-                    rapporto[key] = rapporti_mese.map(item => item[key]).reduce((p, n) => p + n)
-                })
+                rapporto.Studi = rapporti_mese.map(item => item.Studi).reduce((p, n) => p + n)
+                rapporto.Ore = rapporti_mese.map(item => item.Inc != "p" ? item.Ore : 0).reduce((p, n) => p + n)
                 let p = rapporti_mese.filter(item => item.Inc == 'p')
                 let pa = rapporti_mese.filter(item => item.Inc == 'pa')
                 let pr = rapporti_mese.filter(item => item.Inc == 'pr')
                 let ir = rapporti_mese.filter(item => item.Inc == 'ir')
-                rapporto.Note = `P:${p.length} PA:${pa.length} PR:${pr.length} IR:${ir.length}`
+                rapporto.Note = `P:${p.length}  PA:${pa.length}  PR:${pr.length}  IR:${ir.length}`
             }
             cartolina.push(rapporto)
         }
