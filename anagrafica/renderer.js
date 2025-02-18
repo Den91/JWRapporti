@@ -290,8 +290,8 @@ function modalProclamatore(CP_Anag, eliminato) {
     $("#FormProclamatore").trigger("reset")
     //$("#FormProclamatore").find("input").removeClass("is-invalid")
     $('#CP_Anag').val("")
-    $('[name="EliminaProclamatore"]').addClass("d-none");
-    $('[name="RipristinaProclamatore"]').addClass("d-none");
+    $('#EliminaProclamatore').addClass("d-none");
+    $('#RipristinaProclamatore').addClass("d-none");
     if (CP_Anag != "") {
         proc = proclamatori.find((item) => item.id == parseInt(CP_Anag));
         if (eliminato == 0) { //non eliminato
