@@ -120,14 +120,16 @@ async function salvaPresenti() {
             presenti[index].f5 = $(`#f5`).val() == '' ? null : $(`#f5`).val()
         } else {
             console.log('Inserisci')
-            var id = new Date().getTime()
+            var id = new Date().getTime() + Math.random()
             // controlla se l'id è già presente
+            /*
             for (let i = 0; i < presenti.length; i++) {
                 if (presenti[i].id == id) {
                     await sleep(2)
-                    id = new Date().getTime()
+                    id = new Date().getTime() + Math.random()
                 }
             }
+            */
             presenti.push({
                 'Mese': $('[name="mese"]').val(),
                 'i1': $(`#i1`).val(),

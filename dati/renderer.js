@@ -1,4 +1,5 @@
 var rapporti
+var presenti
 var proclamatori
 
 $(document).ready(async function () {
@@ -29,6 +30,7 @@ async function saveBackup() {
 
 async function loadPage() {
     rapporti = await window.electronAPI.readFile('rapporti')
+    presenti = await window.electronAPI.readFile('presenti')
     proclamatori = await window.electronAPI.readFile('anagrafica')
 
     $("#tabAnni").html('')
@@ -89,8 +91,10 @@ async function elimAnno(anno) {
     try {
         for (x = 0; x < 12; x++) {
             rapporti = rapporti.filter(rapporto => rapporto.Mese != mesi[x])
+            presenti = presenti.filter(p => p.Mese != mesi[x])
         }
         result = await window.electronAPI.writeFile('rapporti', rapporti)
+        result = await window.electronAPI.writeFile('presenti', presenti)
     } catch (e) {
         loadPage()
         toast(new Date().getTime(), "rosso", e, 10000)
