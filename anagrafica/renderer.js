@@ -362,7 +362,7 @@ async function salvaProclamatore(CP_Anag) {
             'Attivo': $('input[name=Attivo]:checked').val(),
             'Gr': Number($('#Gr').find(":selected").val()),
             'Elimina': "0",
-            'id': new Date().getTime()
+            'id': new Date().getTime() + Math.random()
         })
     } else {
         let n = proclamatori.findIndex((item) => item.id === Number(CP_Anag))

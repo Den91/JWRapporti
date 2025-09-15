@@ -67,3 +67,9 @@ v1.2.3
 
 v1.2.4
 - compatibile con apple silicon
+
+v1.2.5
+- aggiunto abbuono ore per pionieri
+- rapporti: migliorato salvataggio e bugfix
+- S-21: mostra cartoline degli eliminati
+- dati: elimina registrazione presenti

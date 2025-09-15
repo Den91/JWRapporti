@@ -85,15 +85,35 @@ function rapportiMancanti() {
 function grafici() {
     let studi = []
     let presentiGrafico = []
+    var keysF = ['f1', 'f2', 'f3', 'f4', 'f5',]
 
     mesi = [...new Set(rapporti.map(item => item.Mese))]
     mesi.sort()
-    console.log(mesi)
     mesi.forEach(m => {
         rapporti_mese = rapporti.filter(item => item.Mese == m)
         if (rapporti_mese.length > 0) {
             studi.push(rapporti_mese.map(item => item.Studi).reduce((p, n) => p + n))
         }
+
+        /*
+        presenti_mese = presenti.find(item => item.Mese == m)
+        if (presenti_mese) {
+            keysF.forEach(function (key, indice) {
+                if (presenti_mese[key] != null && presenti_mese[key] != "") {
+                    $(`#TablePresenti tbody tr:eq(1) td:eq(${indice + 1})`).html(presenti[index][key])
+                    if (!isNaN(Number(presenti[index][key]))) {
+                        totF += Number(presenti[index][key])
+                        cF++
+                    }
+                }
+            })
+            mI = totI / cI
+            mF = totF / cF
+
+
+            presentiGrafico.push(presenti_mese.Presenti)
+        }
+            */
     })
     new Chart(
         $('#canvasStudi'),

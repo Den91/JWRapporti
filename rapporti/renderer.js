@@ -137,7 +137,9 @@ async function loadPage() {
                         <td>
                             <div class="d-flex">
                                 <div class="flex-grow-1">
-                                    <span class="">${rapporto.Note}</span>
+                                    <span class="">
+                                        ${rapporto.Note}${rapporto.Abbuono > 0 ? ' - Abbuono ore: ' + rapporto.Abbuono : ''}
+                                    </span>
                                 </div>
                                 <div class="hover-btn d-none">
                                     <button
@@ -186,6 +188,7 @@ function modalRapporti() {
         if (rapporti_mese) {
             rapporto = rapporti_mese.find(item => item.CE_Anag == proclamatore.id)
         }
+        //console.log(proclamatore.Nome, rapporto)
         if (proclamatore.Elimina == 1) {
             if (rapporto) {
                 $("#DivEliminati").removeClass('d-none').append(htmlRapporto(proclamatore))
@@ -208,39 +211,35 @@ function modalRapporti() {
             $(`#Ore-${proclamatore.id}`).removeAttr('disabled')
             $(`#Studi-${proclamatore.id}`).removeAttr('disabled')
             $(`#Note-${proclamatore.id}`).removeAttr('disabled')
+            $(`#Abbuono-${proclamatore.id}`).removeAttr('disabled')
         }
         if (rapporto) {
-            if (mese < "2023-10") {
-                $(`#CP_Rap-${proclamatore.id}`).val(rapporto.id)
-                $(`#Gr-${proclamatore.id}`).val(rapporto.Gr ? rapporto.Gr : "")
-                $(`#Inc-${proclamatore.id}`).val(rapporto.Inc)
-                $(`#Pubb-${proclamatore.id}`).val(rapporto.Pubb ? rapporto.Pubb : "")
-                $(`#Video-${proclamatore.id}`).val(rapporto.Video ? rapporto.Video : "")
-                $(`#Ore-${proclamatore.id}`).val(rapporto.Ore ? rapporto.Ore : "")
-                $(`#VU-${proclamatore.id}`).val(rapporto.VU ? rapporto.VU : "")
-                $(`#Studi-${proclamatore.id}`).val(rapporto.Studi ? rapporto.Studi : "")
-                $(`#Note-${proclamatore.id}`).val(rapporto.Note ? rapporto.Note : "")
-            } else {
-                if (rapporto.Inc == 'pa' || rapporto.Inc == 'pr' || rapporto.Inc == 'ps') {
-                    $(`#Ore-${proclamatore.id}`).removeAttr('disabled')
-                    $(`#Studi-${proclamatore.id}`).removeAttr('disabled')
-                    $(`#Note-${proclamatore.id}`).removeAttr('disabled')
-                }
-                if (rapporto.Inc == 'p') {
-                    $(`#Studi-${proclamatore.id}`).removeAttr('disabled')
-                    $(`#Note-${proclamatore.id}`).removeAttr('disabled')
-                }
-                if (rapporto.Inc == 'ir') {
-                    $(`#Note-${proclamatore.id}`).removeAttr('disabled')
-                }
-
-                $(`#CP_Rap-${proclamatore.id}`).val(rapporto.id)
-                $(`#Gr-${proclamatore.id}`).val(rapporto.Gr ? rapporto.Gr : "")
-                $(`#Inc-${proclamatore.id}`).val(rapporto.Inc)
-                $(`#Ore-${proclamatore.id}`).val(rapporto.Ore ? rapporto.Ore : "")
-                $(`#Studi-${proclamatore.id}`).val(rapporto.Studi ? rapporto.Studi : "")
-                $(`#Note-${proclamatore.id}`).val(rapporto.Note ? rapporto.Note : "")
+            if (rapporto.Inc == 'pr' || rapporto.Inc == 'ps') {
+                $(`#Ore-${proclamatore.id}`).removeAttr('disabled')
+                $(`#Studi-${proclamatore.id}`).removeAttr('disabled')
+                $(`#Note-${proclamatore.id}`).removeAttr('disabled')
+                $(`#Abbuono-${proclamatore.id}`).removeAttr('disabled')
             }
+            if (rapporto.Inc == 'pa') {
+                $(`#Ore-${proclamatore.id}`).removeAttr('disabled')
+                $(`#Studi-${proclamatore.id}`).removeAttr('disabled')
+                $(`#Note-${proclamatore.id}`).removeAttr('disabled')
+            }
+            if (rapporto.Inc == 'p') {
+                $(`#Studi-${proclamatore.id}`).removeAttr('disabled')
+                $(`#Note-${proclamatore.id}`).removeAttr('disabled')
+            }
+            if (rapporto.Inc == 'ir') {
+                $(`#Note-${proclamatore.id}`).removeAttr('disabled')
+            }
+
+            $(`#CP_Rap-${proclamatore.id}`).val(rapporto.id)
+            $(`#Gr-${proclamatore.id}`).val(rapporto.Gr ? rapporto.Gr : "")
+            $(`#Inc-${proclamatore.id}`).val(rapporto.Inc)
+            $(`#Ore-${proclamatore.id}`).val(rapporto.Ore ? rapporto.Ore : "")
+            $(`#Studi-${proclamatore.id}`).val(rapporto.Studi ? rapporto.Studi : "")
+            $(`#Note-${proclamatore.id}`).val(rapporto.Note ? rapporto.Note : "")
+            $(`#Abbuono-${proclamatore.id}`).val(rapporto.Abbuono ? rapporto.Abbuono : "")
         }
     }
     $("#FormRapporti div.DivGruppi:not(.d-none):not(:last)").append('<hr class="mt-1">')
@@ -254,8 +253,7 @@ function htmlRapporto(proclamatore) {
         option_gruppi += `
             <option value="${gruppo.id}">${gruppo.Num}</option>`
     }
-    if (mese < "2023-10") {
-        return `
+    return `
     <div class="row g-2 mb-3">
         <input
             type="hidden"
@@ -272,8 +270,9 @@ function htmlRapporto(proclamatore) {
                 <select
                     class="form-select"
                     id="Gr-${proclamatore.id}"
-                    name="Gr[]" 
+                    name="Gr" 
                     value=""
+                    onchange="convalida(this)"
                 >
                     <option value=""></option>
                     ${option_gruppi}
@@ -281,7 +280,7 @@ function htmlRapporto(proclamatore) {
                 <label for="Gr">Gr</label>                             
             </div>
         </div>
-        <div class="col-2 align-self-center">
+        <div class="col-2 align-self-center nome">
             ${proclamatore.Nome}
         </div>
         <div class="col-1">
@@ -289,139 +288,7 @@ function htmlRapporto(proclamatore) {
                 <select 
                     class="form-select"
                     id="Inc-${proclamatore.id}" 
-                    name="Inc[]" 
-                    value=""
-                    onchange="convalida(this)"
-                >
-                    <option value=""></option>
-                    <option value="p">p</option>
-                    <option value="pa">pa</option>
-                    <option value="pr">pr</option>
-                    <option value="ps">ps</option>
-                    <option value="ir">ir</option>
-                </select>
-                <label for="Inc">Inc.</label>                             
-            </div>
-        </div>
-        <div class="col-1">
-            <div class="form-floating">
-                <input
-                    type="number"
-                    class="form-control"
-                    name="Pubb[]"
-                    id="Pubb-${proclamatore.id}" 
-                    min="0" maxlength="5"
-                    onchange="convalida(this)"
-                >
-                <label for="Pubb">Pubb.</label>
-            </div>
-        </div>
-        <div class="col-1">
-            <div class="form-floating">
-                <input
-                    type="number"
-                    class="form-control"
-                    name="Video[]"
-                    id="Video-${proclamatore.id}" 
-                    min="0" 
-                    maxlength="5"
-                    onchange="convalida(this)"
-                >
-                <label for="Video">Video</label>
-            </div>
-        </div>
-        <div class="col-1">
-            <div class="form-floating">
-                <input 
-                    type="number"
-                    class="form-control"
-                    name="Ore[]"
-                    id="Ore-${proclamatore.id}" 
-                    min="0" 
-                    maxlength="5"
-                    step="0.25" 
-                    onchange="convalida(this)"
-                >
-                <label for="Ore">Ore</label>
-            </div>
-        </div>
-        <div class="col-1">
-            <div class="form-floating">
-                <input
-                    type="number"
-                    class="form-control"
-                    name="VU[]"
-                    id="VU-${proclamatore.id}" 
-                    min="0" 
-                    maxlength="5"
-                    onchange="convalida(this)"
-                >
-                <label for="VU">Visite</label>
-            </div>
-        </div>
-        <div class="col-1">
-            <div class="form-floating">
-                <input
-                    type="number"
-                    class="form-control"
-                    name="Studi[]"
-                    id="Studi-${proclamatore.id}" 
-                    min="0" 
-                    maxlength="5"
-                    onchange="convalida(this)"
-                >
-                <label for="Studi">Studi</label>
-            </div>
-        </div>
-        <div class="col-3">
-            <div class="form-floating">
-                <input
-                    type="text"
-                    class="form-control"
-                    name="Note[]"
-                    id="Note-${proclamatore.id}"
-                    onchange="convalida(this)"
-                >
-                <label for="Note">Note</label>
-            </div>
-        </div>
-    </div>`
-    } else {
-        return `
-    <div class="row g-2 mb-3">
-        <input
-            type="hidden"
-            name="CP_Anag"
-            value="${proclamatore.id}"
-        >
-        <input
-            type="hidden"
-            id="CP_Rap-${proclamatore.id}"
-            name="CP_Rap"
-        >
-        <div class="col-1">
-            <div class="form-floating">
-                <select
-                    class="form-select"
-                    id="Gr-${proclamatore.id}"
-                    name="Gr[]" 
-                    value=""
-                >
-                    <option value=""></option>
-                    ${option_gruppi}
-                </select>
-                <label for="Gr">Gr</label>                             
-            </div>
-        </div>
-        <div class="col-2 align-self-center">
-            ${proclamatore.Nome}
-        </div>
-        <div class="col-1">
-            <div class="form-floating">
-                <select 
-                    class="form-select"
-                    id="Inc-${proclamatore.id}" 
-                    name="Inc[]" 
+                    name="Inc" 
                     value=""
                     onchange="convalida(this)"
                 >
@@ -440,7 +307,7 @@ function htmlRapporto(proclamatore) {
                 <input 
                     type="number"
                     class="form-control"
-                    name="Ore[]"
+                    name="Ore"
                     id="Ore-${proclamatore.id}" 
                     min="0" 
                     maxlength="5"
@@ -456,7 +323,22 @@ function htmlRapporto(proclamatore) {
                 <input
                     type="number"
                     class="form-control"
-                    name="Studi[]"
+                    name="Abbuono"
+                    id="Abbuono-${proclamatore.id}" 
+                    min="0" 
+                    maxlength="5"
+                    onchange="convalida(this)"
+                    disabled
+                >
+                <label for="Abbuono">Ore abb.</label>
+            </div>
+        </div>
+        <div class="col-1">
+            <div class="form-floating">
+                <input
+                    type="number"
+                    class="form-control"
+                    name="Studi"
                     id="Studi-${proclamatore.id}" 
                     min="0" 
                     maxlength="5"
@@ -471,7 +353,7 @@ function htmlRapporto(proclamatore) {
                 <input
                     type="text"
                     class="form-control"
-                    name="Note[]"
+                    name="Note"
                     id="Note-${proclamatore.id}"
                     onchange="convalida(this)"
                     disabled
@@ -480,10 +362,11 @@ function htmlRapporto(proclamatore) {
             </div>
         </div>
     </div>`
-    }
 }
 
 async function salvaRapporti() {
+    console.log('Salva rapporti')
+    //forse è da togliere?
     $("[name='CP_Anag']").each(async function (indice, CP_Anag) {
         CP_Anag = $(CP_Anag).val()
         if ($('#Ore-' + CP_Anag).val() == ''
@@ -492,28 +375,38 @@ async function salvaRapporti() {
             $("#Ore-" + CP_Anag).addClass("is-invalid")
         }
     })
+
+
     if ($('#FormRapporti .is-invalid').length > 0) {
         //se ci sono errori, non salvare
         $("#ModalRapporti").animate({
-            scrollTop: $('#FormRapporti .is-invalid').offset().top
+            scrollTop: $('.is-invalid').offset().top
         }, 2000);
         return
     }
-    $('#SalvaRapporti').prop("disabled", true)
-    $("#ModalRapporti").modal("hide")
-    $("[name='CP_Anag']").each(async function (indice, CP_Anag) {
-        CP_Anag = $(CP_Anag).val()
-        if ($("#Inc-" + CP_Anag).val() == "") {
-            if ($(`[name='CP_Rap']:eq(${indice})`).val() != "") {
+    $("[modificato='true']").each(function (indice, riga) {
+        console.log($(riga).find(".nome").text())
+        var CP_Anag = Number($(riga).find("[name='CP_Anag']").val())
+        var CP_Rap = Number($(riga).find("[name='CP_Rap']").val())
+        var Gr = Number($(riga).find("[name='Gr']").val())
+        var Inc = $(riga).find("[name='Inc']").val()
+        var Ore = Number($(riga).find("[name='Ore']").val())
+        var Studi = Number($(riga).find("[name='Studi']").val())
+        var Note = $(riga).find("[name='Note']").val()
+        var Abbuono = Number($(riga).find("[name='Abbuono']").val())
+        console.log(CP_Rap)
+        if (Inc == "") {
+            if (CP_Rap != "") {
                 console.log('Cancella record')
-                let n = rapporti.findIndex((item) => item.id == Number($(`[name='CP_Rap']:eq(${indice})`).val()))
+                let n = rapporti.findIndex((item) => item.id == CP_Rap)
                 rapporti.splice(n, 1)
             }
         } else {
-            if ($(`[name='CP_Rap']:eq(${indice})`).val() == "") {
+            if (CP_Rap == "") {
                 console.log('Inserisci')
-                var id = new Date().getTime()
+                var id = new Date().getTime() + Math.random()
                 // controlla se l'id è già presente
+                /*
                 for (let i = 0; i < rapporti.length; i++) {
                     if (rapporti[i].id == id) {
                         setTimeout(() => {
@@ -522,49 +415,47 @@ async function salvaRapporti() {
                         id = new Date().getTime()
                     }
                 }
+                */
                 rapporti.unshift({
-                    'CE_Anag': Number(CP_Anag),
-                    'Gr': Number($('#Gr-' + CP_Anag).val()),
+                    'CE_Anag': CP_Anag,
+                    'Gr': Gr,
                     'Mese': $('[name="mese"]').val(),
-                    'Inc': $('#Inc-' + CP_Anag).val(),
-                    'Pubb': Number($('#Pubb-' + CP_Anag).val()),
-                    "Video": Number($('#Video-' + CP_Anag).val()),
-                    "Ore": Number($('#Ore-' + CP_Anag).val()),
-                    "VU": Number($('#VU-' + CP_Anag).val()),
-                    "Studi": Number($('#Studi-' + CP_Anag).val()),
-                    "Note": $('#Note-' + CP_Anag).val(),
+                    'Inc': Inc,
+                    "Ore": Ore,
+                    "Studi": Studi,
+                    "Note": Note,
+                    'Abbuono': Abbuono,
                     'id': id
                 })
+                //console.log(rapporti[0])
             } else {
                 console.log('Modifica')
-                for (let i = 0; i < rapporti.length; i++) {
-                    if (rapporti[i].id == Number($(`[name='CP_Rap']:eq(${indice})`).val())) {
-                        n = i
-                        break
-                    }
-                }
-                rapporti[n].CE_Anag = Number(CP_Anag)
-                rapporti[n].Gr = Number($('#Gr-' + CP_Anag).val())
+                let n = rapporti.findIndex((item) => item.id == CP_Rap)
+                console.log(n, rapporti[n].CE_Anag)
+                rapporti[n].Gr = Gr
                 rapporti[n].Mese = $('[name="mese"]').val()
-                rapporti[n].Inc = $('#Inc-' + CP_Anag).val()
-                rapporti[n].Pubb = Number($('#Pubb-' + CP_Anag).val())
-                rapporti[n].Video = Number($('#Video-' + CP_Anag).val())
-                rapporti[n].Ore = Number($('#Ore-' + CP_Anag).val())
-                rapporti[n].VU = Number($('#VU-' + CP_Anag).val())
-                rapporti[n].Studi = Number($('#Studi-' + CP_Anag).val())
-                rapporti[n].Note = $('#Note-' + CP_Anag).val()
+                rapporti[n].Inc = Inc
+                rapporti[n].Ore = Ore
+                rapporti[n].Studi = Studi
+                rapporti[n].Note = Note
+                rapporti[n].Abbuono = Abbuono
+                rapporti[n].prova = 'modifica'
+
             }
         }
     })
     try {
+        console.log(rapporti)
         result = await window.electronAPI.writeFile('rapporti', rapporti)
     } catch (e) {
+        console.log(e)
         loadPage()
         toast(new Date().getTime(), "rosso", e, 10000)
         return
     }
     toast(new Date().getTime(), "verde", `Dati salvati`)
-    $('#SalvaRapporti').prop("disabled", false)
+    //$('#SalvaRapporti').prop("disabled", false)
+    $("#ModalRapporti").modal("hide")
     loadPage()
 }
 
@@ -580,105 +471,76 @@ async function convalida(dato) {
     input = dato.id.split('-')[0]
     CP_Anag = dato.id.split('-')[1]
     mese = $('[name="mese"]').val()
-    if (mese < "2023-10") {
-        if (input == "Ore") {
-            if ($("#Inc-" + CP_Anag).val() == '') {
-                if ($("#Ore-" + CP_Anag).val() == 0 && $("#Ore-" + CP_Anag).val() != '') {
-                    $("#Inc-" + CP_Anag).val("ir")
-                    if ($("#Note-" + CP_Anag).val() == '') {
-                        irr = await irregolare(CP_Anag)
-                        $("#Note-" + CP_Anag).val(`Irregolare ${irr}° mese`)
-                    }
-                }
-                if ($("#Ore-" + CP_Anag).val() > 0) {
-                    proc = proclamatori.find(item => item.id == Number(CP_Anag));
-                    if (proc.PR_PS == "") {
-                        $("#Inc-" + CP_Anag).val("p")
-                    }
-                    if (proc.PR_PS == "PR") {
-                        $("#Inc-" + CP_Anag).val("pr")
-                    }
-                    if (proc.PR_PS == "PS") {
-                        $("#Inc-" + CP_Anag).val("ps")
-                    }
-                }
-            }
+    $("#Ore-" + CP_Anag).removeClass("is-invalid")
+    if (input == "Inc") {
+        if ($("#Inc-" + CP_Anag).val() == "ir") {
+            $("#Ore-" + CP_Anag).attr("disabled", true)
+            $("#Studi-" + CP_Anag).attr("disabled", true)
+            $("#Note-" + CP_Anag).removeAttr('disabled')
+            irr = await irregolare(CP_Anag)
+            $("#Note-" + CP_Anag).val(`Irregolare ${irr}° mese`)
+            $("#Abbuono-" + CP_Anag).attr("disabled", true)
         }
-        if (input == "Studi" || input == "VU") {
-            if (Number($("#Studi-" + CP_Anag).val()) > Number($("#VU-" + CP_Anag).val())) {
-                $("#Studi-" + CP_Anag).addClass("is-invalid")
-            } else {
-                $("#Studi-" + CP_Anag).removeClass("is-invalid")
-            }
+        if ($("#Inc-" + CP_Anag).val() == "p") {
+            $("#Ore-" + CP_Anag).attr("disabled", true)
+            $("#Studi-" + CP_Anag).removeAttr('disabled')
+            $("#Note-" + CP_Anag).removeAttr('disabled')
+            $("#Abbuono-" + CP_Anag).attr("disabled", true)
         }
-        if (input == "Inc") {
-            if ($("#Inc-" + CP_Anag).val() == "ir") {
-                $("#Ore-" + CP_Anag).val('0')
-                if ($("#Note-" + CP_Anag).val() == '') {
-                    irr = await irregolare(CP_Anag)
-                    $("#Note-" + CP_Anag).val(`Irregolare ${irr}° mese`)
-                }
-            }
-            if ($("#Inc-" + CP_Anag).val() == "") {
-                $("#Pubb-" + CP_Anag).val('')
-                $("#Video-" + CP_Anag).val('')
-                $("#Ore-" + CP_Anag).val('')
-                $("#VU-" + CP_Anag).val('')
-                $("#Studi-" + CP_Anag).val('')
-                $("#Note-" + CP_Anag).val('')
-            }
+        if ($("#Inc-" + CP_Anag).val() == "pa") {
+            $("#Ore-" + CP_Anag).removeAttr('disabled')
+            $("#Studi-" + CP_Anag).removeAttr('disabled')
+            $("#Note-" + CP_Anag).removeAttr('disabled')
+            $("#Abbuono-" + CP_Anag).attr("disabled", true)
         }
-    } else {
-        if (input == "Inc") {
-            if ($("#Inc-" + CP_Anag).val() == "ir") {
-                $("#Ore-" + CP_Anag).attr("disabled", true)
-                $("#Studi-" + CP_Anag).attr("disabled", true)
-                $("#Note-" + CP_Anag).removeAttr('disabled')
-                irr = await irregolare(CP_Anag)
-                $("#Note-" + CP_Anag).val(`Irregolare ${irr}° mese`)
-            }
-            if ($("#Inc-" + CP_Anag).val() == "p") {
-                $("#Ore-" + CP_Anag).attr("disabled", true)
-                $("#Studi-" + CP_Anag).removeAttr('disabled')
-                $("#Note-" + CP_Anag).removeAttr('disabled')
-            }
-            if ($("#Inc-" + CP_Anag).val() == "pa" ||
-                $("#Inc-" + CP_Anag).val() == "pr" ||
-                $("#Inc-" + CP_Anag).val() == "ps") {
-                $("#Ore-" + CP_Anag).removeAttr('disabled')
-                $("#Studi-" + CP_Anag).removeAttr('disabled')
-                $("#Note-" + CP_Anag).removeAttr('disabled')
-            }
-            if ($("#Inc-" + CP_Anag).val() == "") {
-                $("#Ore-" + CP_Anag).attr("disabled", true)
-                $("#Studi-" + CP_Anag).attr("disabled", true)
-                $("#Note-" + CP_Anag).attr("disabled", true)
-            }
+        if ($("#Inc-" + CP_Anag).val() == "pr" || $("#Inc-" + CP_Anag).val() == "ps") {
+            $("#Ore-" + CP_Anag).removeAttr('disabled')
+            $("#Studi-" + CP_Anag).removeAttr('disabled')
+            $("#Note-" + CP_Anag).removeAttr('disabled')
+            $("#Abbuono-" + CP_Anag).removeAttr('disabled')
         }
-        if (input == "Ore") {
-            if ($("#Inc-" + CP_Anag).val() == '') {
-                proc = proclamatori.find(item => item.id == Number(CP_Anag));
-                if (proc.PR_PS == "PR") {
-                    $("#Inc-" + CP_Anag).val("pr")
-                }
-                if (proc.PR_PS == "PS") {
-                    $("#Inc-" + CP_Anag).val("ps")
-                }
+        if ($("#Inc-" + CP_Anag).val() == "") {
+            $("#Ore-" + CP_Anag).attr("disabled", true)
+            $("#Studi-" + CP_Anag).attr("disabled", true)
+            $("#Note-" + CP_Anag).attr("disabled", true)
+            $("#Abbuono-" + CP_Anag).attr("disabled", true)
+            $("#Pubb-" + CP_Anag).val('')
+            $("#Video-" + CP_Anag).val('')
+            $("#Ore-" + CP_Anag).val('')
+            $("#VU-" + CP_Anag).val('')
+            $("#Studi-" + CP_Anag).val('')
+            $("#Note-" + CP_Anag).val('')
+            $("#Abbuono-" + CP_Anag).val('')
+        }
+    }
+    //autofill proclamatori PR e PS
+    if (input == "Ore") {
+        if ($("#Inc-" + CP_Anag).val() == '') {
+            proc = proclamatori.find(item => item.id == Number(CP_Anag));
+            if (proc.PR_PS == "PR") {
+                $("#Inc-" + CP_Anag).val("pr")
             }
-            if (Number($("#Ore-" + CP_Anag).val()) > 0
-                && ($("#Inc-" + CP_Anag).val() == 'pa'
-                    || $("#Inc-" + CP_Anag).val() == 'pr'
-                    || $("#Inc-" + CP_Anag).val() == 'ps')) {
-                $("#Ore-" + CP_Anag).removeClass("is-invalid")
-            }
-            if (Number($("#Ore-" + CP_Anag).val()) <= 0
-                && ($("#Inc-" + CP_Anag).val() == 'pa'
-                    || $("#Inc-" + CP_Anag).val() == 'pr'
-                    || $("#Inc-" + CP_Anag).val() == 'ps')) {
-                $("#Ore-" + CP_Anag).addClass("is-invalid")
+            if (proc.PR_PS == "PS") {
+                $("#Inc-" + CP_Anag).val("ps")
             }
         }
     }
+    //convalida
+    if (input == "Ore") {
+        if (Number($("#Ore-" + CP_Anag).val()) > 0
+            && ($("#Inc-" + CP_Anag).val() == 'pa'
+                || $("#Inc-" + CP_Anag).val() == 'pr'
+                || $("#Inc-" + CP_Anag).val() == 'ps')) {
+            $("#Ore-" + CP_Anag).removeClass("is-invalid")
+        }
+        if (Number($("#Ore-" + CP_Anag).val()) <= 0
+            && ($("#Inc-" + CP_Anag).val() == 'pa'
+                || $("#Inc-" + CP_Anag).val() == 'pr'
+                || $("#Inc-" + CP_Anag).val() == 'ps')) {
+            $("#Ore-" + CP_Anag).addClass("is-invalid")
+        }
+    }
+    $(dato).parents('.row').attr('modificato', true)
 }
 
 async function irregolare(id) {

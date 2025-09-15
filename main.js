@@ -135,8 +135,6 @@ function updateMacos() {
         .then(latest => {
             updateVersion = latest[0].name.slice(1)
             packVersion = pack.version
-            console.log(updateVersion)
-            console.log(packVersion)
             compare = updateVersion.localeCompare(packVersion, undefined, { numeric: true, sensitivity: 'base' })
             if (compare == 1) {
                 updateWindow = new BrowserWindow({
@@ -187,7 +185,8 @@ async function controllaRapportiDoppi() {
             msg += `${data.toLocaleString('it-IT', {
                 month: 'long',
                 year: 'numeric',
-            })} - ${rap.Nome}`
+            })} - ${rap.Nome}
+            `
         }
         const response = dialog.showMessageBox(mainWindow,
             {
@@ -252,6 +251,7 @@ async function ottimizzaTabelle() {
     })
     try {
         result = await writeFile(null, 'rapporti', rapporti)
+        //result = await writeFile(null, 'anagrafica', anagrafica)
     } catch (e) {
         return
     }

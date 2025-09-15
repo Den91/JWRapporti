@@ -34,8 +34,7 @@ $(document).ready(async function () {
         $('[name="selectAnno"]').val($('[name="selectAnno"] option:last').val())
     }
 
-    anagrafica = await window.electronAPI.readFile('anagrafica')
-    proclamatori = anagrafica.filter(item => item.Elimina == '0')
+    proclamatori = await window.electronAPI.readFile('anagrafica')
     proclamatori.sort(function (a, b) {
         if (a.Nome < b.Nome)
             return -1
@@ -44,12 +43,17 @@ $(document).ready(async function () {
         return 0
     })
     proclamatori.forEach(function (proclamatore, indice) {
-        if (proclamatore.Attivo == 1)
-            $('optgroup[label="Attivi"]').append(`
+        if (proclamatore.Elimina == 1)
+            $('optgroup[label="Eliminati"]').append(`
                 <option value="${proclamatore.id}">${proclamatore.Nome}</option>`)
-        if (proclamatore.Attivo == 0)
-            $('optgroup[label="Inattivi"]').append(`
-                <option value="${proclamatore.id}">${proclamatore.Nome}</option>`)
+        else {
+            if (proclamatore.Attivo == 1)
+                $('optgroup[label="Attivi"]').append(`
+                    <option value="${proclamatore.id}">${proclamatore.Nome}</option>`)
+            if (proclamatore.Attivo == 0)
+                $('optgroup[label="Inattivi"]').append(`
+                    <option value="${proclamatore.id}">${proclamatore.Nome}</option>`)
+        }
     })
     gruppi = await window.electronAPI.readFile('gruppi')
     gruppiStranieri = gruppi.filter(item => item.straniero)
@@ -263,7 +267,12 @@ function visualS21() {
                         somma += Number(rapporto.Ore)
                         $(`table tbody tr:eq(${indice}) td:eq(3)`).html(rapporto.Ore)
                     }
-                    $(`table tbody tr:eq(${indice}) td:eq(4)`).html(rapporto.Note)
+                    if (rapporto.Abbuono && rapporto.Abbuono != 0) {
+                        $(`table tbody tr:eq(${indice}) td:eq(4)`)
+                            .html(rapporto.Note + ' - Abbuono ore: ' + rapporto.Abbuono)
+                    } else {
+                        $(`table tbody tr:eq(${indice}) td:eq(4)`).html(rapporto.Note)
+                    }
                 }
                 if ((rapporto.hasOwnProperty('N') && rapporto.N != 0)) {
                     $(`table tbody tr:eq(${indice}) td:eq(${1})`).html(rapporto.N)

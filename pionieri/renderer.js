@@ -63,9 +63,15 @@ async function visualPionieri() {
                 rapporto = rapporti.filter(item => ((item.Mese == mesi[x]) && (item.CE_Anag == pioniere.id)))
                 if (rapporto.length != 0) {
                     conta++
-                    somma += rapporto[0].Ore
-                    $(`#${pioniere.id} td:eq(${x + 1})`)
-                        .html(rapporto[0].Ore);
+                    if (rapporto[0].Abbuono > 0) {
+                        somma += rapporto[0].Ore + rapporto[0].Abbuono
+                        $(`#${pioniere.id} td:eq(${x + 1})`)
+                            .html(rapporto[0].Ore + '+' + rapporto[0].Abbuono)
+                    } else {
+                        somma += rapporto[0].Ore
+                        $(`#${pioniere.id} td:eq(${x + 1})`)
+                            .html(rapporto[0].Ore)
+                    }
                 }
             }
             media = somma / conta
