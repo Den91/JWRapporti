@@ -1,21 +1,13 @@
-var co
-var gruppi
-var proclamatori
-var procEliminati
-var rapporti
+var db
 
 $(document).ready(async function () {
     navbar("anagrafica")
-    ordinaTabella($("#tableAnagrafica th:eq(0)")[0])
     loadPage()
-})
-
-$(window).resize(function () {
-    marginBody();
+    ordinaTabella($("#tableAnagrafica th:eq(0)")[0])
 })
 
 async function loadPage() {
-    rapporti = await window.electronAPI.readFile('rapporti')
+    db = await window.electronAPI.readFile('db')
     visualCO()
     visualGruppi()
     visualProclamatori()
@@ -26,16 +18,19 @@ $("th").click(function () {
 })
 
 $(":checkbox").change(function () {
-    if (this.checked) inverti(this)
+    if ($(this).is(":checked")) {
+        $(`input[name='${$(this).attr("name")}']`).not(this).prop("checked", false);
+    }
 })
 
 $("input").focus(function () {
-    if ($(this).hasClass("is-invalid")) $(this).removeClass("is-invalid")
+    if ($(this).hasClass("is-invalid")) {
+        $(`input[name='${$(this).attr("name")}']`).removeClass("is-invalid")
+    }
 })
 
 async function visualCO() {
-    co = await window.electronAPI.readFile('sorvegliante')
-    if (co.length === 0) {
+    if (db.sorvegliante.length === 0) {
         $("#buttonCO").html('<i class="bi bi-person-plus-fill"></i>')
         $("#DivCO").html('')
     } else {
@@ -52,9 +47,9 @@ async function visualCO() {
                     </thead>
                     <tbody>
                         <tr>
-                            <td class="">${co[0].Nome_CO}</td>
-                            <td class="">${co[0].Cel_CO}</td>
-                            <td class="">${co[0].Email_CO}</td>
+                            <td class="">${db.sorvegliante[0].Nome_CO}</td>
+                            <td class="">${db.sorvegliante[0].Cel_CO}</td>
+                            <td class="">${db.sorvegliante[0].Email_CO}</td>
                         </tr>
                     </tbody>
                 </table>
@@ -63,24 +58,33 @@ async function visualCO() {
 }
 
 function modalCO() {
-    if (co.length === 0) {
+    if (db.sorvegliante.length === 0) {
         $("#FormCO").trigger("reset");
     } else {
-        $('[name="Nome_CO"]').val(co[0].Nome_CO)
-        $('[name="Cel_CO"]').val(co[0].Cel_CO)
-        $('[name="Email_CO"]').val(co[0].Email_CO)
+        $('[name="Nome_CO"]').val(db.sorvegliante[0].Nome_CO)
+        $('[name="Cel_CO"]').val(db.sorvegliante[0].Cel_CO)
+        $('[name="Email_CO"]').val(db.sorvegliante[0].Email_CO)
     }
     $("#ModalCO").modal("show")
 }
 
 async function salvaCO() {
+    $('#FormCO').find(":input").each(function () {
+        if (!this.checkValidity()) {
+            $(this).addClass("is-invalid");
+        }
+    });
+    if ($('#FormCO').find(".is-invalid").length > 0) {
+        return
+    }
     $("#ModalCO").modal("hide")
+    db.sorvegliante[0] = {
+        'Nome_CO': $("#Nome_CO").val(),
+        'Cel_CO': $("#Cel_CO").val(),
+        'Email_CO': $("#Email_CO").val(),
+    }
     try {
-        result = await window.electronAPI.writeFile('sorvegliante', [{
-            'Nome_CO': $("#Nome_CO").val(),
-            'Cel_CO': $("#Cel_CO").val(),
-            'Email_CO': $("#Email_CO").val(),
-        }])
+        result = await window.electronAPI.writeFile('db', db)
     } catch (e) {
         loadPage()
         toast(new Date().getTime(), "rosso", e, 10000)
@@ -91,19 +95,18 @@ async function salvaCO() {
 }
 
 async function visualGruppi() {
-    gruppi = await window.electronAPI.readFile('gruppi')
-    gruppi.sort(function (a, b) {
+    db.gruppi.sort(function (a, b) {
         return a.Num - b.Num
     })
     //console.log(gruppi)
     $("#DivGruppi").removeClass(`row-cols-md-1 row-cols-md-2 row-cols-md-3 row-cols-md-4`)
     $("#DivGruppi").html('')
     $("#Gr").html()
-    if (gruppi.length <= 4)
-        $("#DivGruppi").addClass(`row-cols-md-${gruppi.length}`)
-    if (gruppi.length > 4)
+    if (db.gruppi.length <= 4)
+        $("#DivGruppi").addClass(`row-cols-md-${db.gruppi.length}`)
+    if (db.gruppi.length > 4)
         $("#DivGruppi").addClass(`row-cols-md-3`)
-    gruppi.forEach(function (gruppo) {
+    db.gruppi.forEach(function (gruppo) {
         $("#DivGruppi").append(`
                 <div class="col d-grid mb-1">
                     <button class="btn btn-outline-secondary" onclick="modalGruppo('${gruppo["id"]}')">
@@ -123,12 +126,12 @@ async function visualGruppi() {
 
 function modalGruppo(CP_Gruppo) {
     $("#FormGruppo").trigger("reset")
-    $("#Num").val(gruppi.length + 1)
+    $("#Num").val(db.gruppi.length + 1)
     $('#CP_Gruppo').val('');
     $('#EliminaGruppo').addClass("d-none");
     if (CP_Gruppo != '') {
         $('#EliminaGruppo').removeClass("d-none");
-        gruppo = gruppi.find((item) => item['id'] === Number(CP_Gruppo))
+        gruppo = db.gruppi.find((item) => item['id'] === Number(CP_Gruppo))
         $('#CP_Gruppo').val(CP_Gruppo);
         $("#Num").val(parseInt(gruppo.Num));
         $("#Sorv_Gr").val(gruppo.Sorv_Gr);
@@ -138,22 +141,30 @@ function modalGruppo(CP_Gruppo) {
 }
 
 async function salvaGruppo(CP_Gruppo) {
+    $('#FormGruppo').find(":input").each(function () {
+        if (!this.checkValidity()) {
+            $(this).addClass("is-invalid");
+        }
+    });
+    if ($('#FormGruppo').find(".is-invalid").length > 0) {
+        return
+    }
     $("#ModalGruppo").modal("hide")
     if (CP_Gruppo == '') {
-        gruppi.push({
+        db.gruppi.push({
             'Num': $("#Num").val(),
             'Sorv_Gr': $("#Sorv_Gr").val(),
             'straniero': $("#straniero").prop('checked'),
             'id': new Date().getTime()
         })
     } else {
-        let n = gruppi.findIndex((item) => item.id === Number(CP_Gruppo))
-        gruppi[n].Num = $("#Num").val()
-        gruppi[n].Sorv_Gr = $("#Sorv_Gr").val()
-        gruppi[n].straniero = $("#straniero").prop('checked')
+        let n = db.gruppi.findIndex((item) => item.id === Number(CP_Gruppo))
+        db.gruppi[n].Num = $("#Num").val()
+        db.gruppi[n].Sorv_Gr = $("#Sorv_Gr").val()
+        db.gruppi[n].straniero = $("#straniero").prop('checked')
     }
     try {
-        result = await window.electronAPI.writeFile('gruppi', gruppi)
+        result = await window.electronAPI.writeFile('db', db)
     } catch (e) {
         loadPage()
         toast(new Date().getTime(), "rosso", e, 10000)
@@ -165,44 +176,46 @@ async function salvaGruppo(CP_Gruppo) {
 
 async function eliminaGruppo(CP_Gruppo) {
     $("#ModalGruppo").modal("hide")
-    let n = gruppi.findIndex((item) => item.id == Number(CP_Gruppo))
-    let eliminato = gruppi[n]
-    gruppi.splice(n, 1)
+    let n = db.gruppi.findIndex((item) => item.id == Number(CP_Gruppo))
+    let eliminato = db.gruppi[n]
+    db.gruppi.splice(n, 1)
     try {
-        result = await window.electronAPI.writeFile('gruppi', gruppi)
+        result = await window.electronAPI.writeFile('db', db)
     } catch (e) {
         loadPage()
         toast(new Date().getTime(), "rosso", e, 10000)
         return
     }
-    if (proclamatori.length > 0) {
-        proclamatori.forEach(function (proc, indice) {
+    if (db.anagrafica.length > 0) {
+        db.anagrafica.forEach(function (proc, indice) {
             if (proc.Gr == Number(CP_Gruppo)) {
-                proclamatori[indice].Gr = ''
+                db.anagrafica[indice].Gr = ''
             }
         })
         try {
-            result = await window.electronAPI.writeFile('anagrafica', proclamatori)
+            result = await window.electronAPI.writeFile('db', db)
         } catch (e) {
             loadPage()
             toast(new Date().getTime(), "rosso", e, 10000)
             return
         }
     }
-    if (rapporti.length > 0) {
-        rapporti.forEach(function (rap, indice) {
+    /*
+    if (db.rapporti.length > 0) {
+        rdb.apporti.forEach(function (rap, indice) {
             if (rap.Gr == Number(CP_Gruppo)) {
-                rapporti[indice].Gr = ''
+                db.rapporti[indice].Gr = ''
             }
         })
         try {
-            result = await window.electronAPI.writeFile('rapporti', rapporti)
+            result = await window.electronAPI.writeFile('db', db)
         } catch (e) {
             loadPage()
             toast(new Date().getTime(), "rosso", e, 10000)
             return
         }
     }
+    */
     toast(new Date().getTime(), "verde", `Gruppo ${eliminato.Num} eliminato`)
     loadPage()
 }
@@ -218,8 +231,7 @@ function getAge(dateString) {
 async function visualProclamatori() {
     $("#TBodyProc").html('')
     $("#tableEliminati tbody").html('')
-    proclamatori = await window.electronAPI.readFile('anagrafica')
-    proclamatori.sort(function (a, b) {
+    db.anagrafica.sort(function (a, b) {
         if (a.Nome.toUpperCase() < b.Nome.toUpperCase())
             return -1
         if (a.Nome.toUpperCase() > b.Nome.toUpperCase())
@@ -227,11 +239,10 @@ async function visualProclamatori() {
         return 0
     })
     p = pr = ps = inat = 0
-    //console.log(proclamatori)
-    proclamatori.forEach(function (proc, indice) {
-        if (proc.Elimina == 0) {
-            if (proc.Gr != '') {
-                var gruppo = gruppi.find((item) => item.id === Number(proc["Gr"]))
+    db.anagrafica.forEach(function (proc, indice) {
+        if (!proc.Eliminato) {
+            if (proc.Gr) {
+                var gruppo = db.gruppi.find((item) => item.id === Number(proc["Gr"]))
                 var gruppoTxt = `${gruppo.Num} - ${gruppo.Sorv_Gr}`
             } else {
                 gruppoTxt = ""
@@ -240,24 +251,25 @@ async function visualProclamatori() {
                 pr++
             } else if (proc.PR_PS == 'PS') {
                 ps++
-            } else if (proc.Attivo == '0') {
+            } else if (!proc.Attivo) {
                 inat++
             } else {
                 p++
             }
             $("#TBodyProc").append(`
-                <tr onclick="modalProclamatore('${proc["id"]}', 0)">
+                <tr onclick="modalProclamatore('${proc["id"]}')">
                     <td>${proc["Nome"]}</td>
                     <td>${getAge(proc["D_Nasc"])}</td>
                     <td>${proc["Cel"] || proc["Tel"]}</td>
                     <td>${proc["Email"]}</td>
                     <td>${proc["Emerg"]}</td>
                     <td>${gruppoTxt}</td>
-                    <td>${proc["Attivo"] == '0' ? "Inattivo" : "Attivo"}</td>
+                    <td>${proc["Attivo"] ? "Attivo" : "Inattivo"}</td>
                 </tr>`)
         } else {
+            $('#rowEliminati').removeClass('d-none')
             $("#tableEliminati tbody").append(`
-                <tr onclick="modalProclamatore(${proc["id"]}, 1)">
+                <tr onclick="modalProclamatore(${proc["id"]})">
                     <td>${proc["Nome"]}</td>
                     <td>${getAge(proc["D_Nasc"])}</td>
                     <td>${proc["Cel"] || proc["Tel"]}</td>
@@ -276,9 +288,9 @@ async function visualProclamatori() {
         $("#inat").html(`&nbsp- Inattivi: ${inat}`)
 }
 
-function modalProclamatore(CP_Anag, eliminato) {
+function modalProclamatore(CP_Anag) {
     $("#Gr").html('')
-    gruppi.forEach(function (gruppo) {
+    db.gruppi.forEach(function (gruppo) {
         //modal gruppi select option
         $("#Gr").append(
             $("<option>", {
@@ -288,31 +300,28 @@ function modalProclamatore(CP_Anag, eliminato) {
         )
     })
     $("#FormProclamatore").trigger("reset")
-    //$("#FormProclamatore").find("input").removeClass("is-invalid")
+    $("#FormProclamatore").find("input").removeClass("is-invalid")
     $('#CP_Anag').val("")
     $('#EliminaProclamatore').addClass("d-none");
     $('#RipristinaProclamatore').addClass("d-none");
     if (CP_Anag != "") {
-        proc = proclamatori.find((item) => item.id == parseInt(CP_Anag));
-        if (eliminato == 0) { //non eliminato
-            $('#EliminaProclamatore').removeClass("d-none");
+        proc = db.anagrafica.find((item) => item.id == Number(CP_Anag))
+        if (proc.Eliminato) {
+            $('#RipristinaProclamatore').removeClass("d-none")
+        } else {
+            $('#EliminaProclamatore').removeClass("d-none")
         }
-        if (eliminato == 1) { //eliminato
-            $('#RipristinaProclamatore').removeClass("d-none");
-        }
-        $('#CP_Anag').val(CP_Anag);
-        $("#Nome").val(unescapeHtml(proc.Nome));
-        $("#Nome2").val(unescapeHtml(proc.Nome2));
-        $("#Ind").val(unescapeHtml(proc.Ind));
-        $("#D_Nasc").val(proc.D_Nasc);
-        $("#D_Batt").val(proc.D_Batt);
-        $("#Tel").val(unescapeHtml(proc.Tel));
-        $("#Cel").val(unescapeHtml(proc.Cel));
-        $("#Email").val(unescapeHtml(proc.Email));
-        $("#Emerg").val(unescapeHtml(proc.Emerg));
-        if (proc.S == $(`input[name=S][value=${proc.S}]`).val()) {
-            $(`input[name=S][value=${proc.S}]`).prop("checked", true);
-        }
+        $('#CP_Anag').val(CP_Anag)
+        $("#Nome").val(unescapeHtml(proc.Nome))
+        $("#Nome2").val(unescapeHtml(proc.Nome2))
+        $("#Ind").val(unescapeHtml(proc.Ind))
+        $("#D_Nasc").val(proc.D_Nasc)
+        $("#D_Batt").val(proc.D_Batt)
+        $("#Tel").val(unescapeHtml(proc.Tel))
+        $("#Cel").val(unescapeHtml(proc.Cel))
+        $("#Email").val(unescapeHtml(proc.Email))
+        $("#Emerg").val(unescapeHtml(proc.Emerg))
+        $(`input[name=S][value=${proc.S}]`).prop("checked", true)
         if (proc.U_AP && proc.U_AP == $("#" + proc.U_AP).val()) {
             $("#" + proc.U_AP).prop("checked", true);
         }
@@ -322,9 +331,7 @@ function modalProclamatore(CP_Anag, eliminato) {
         if (proc.PR_PS && proc.PR_PS == $("#" + proc.PR_PS).val()) {
             $("#" + proc.PR_PS).prop("checked", true);
         }
-        if (proc.Attivo == $(`input[name=Attivo][value=${proc.Attivo}]`).val()) {
-            $(`input[name=Attivo][value=${proc.Attivo}]`).prop("checked", true);
-        }
+        $(`input[name=Attivo][value=${proc.Attivo}]`).prop("checked", true);
         if (proc.Gr != '') {
             $(`#Gr option[value='${proc.Gr}'`).prop('selected', true)
             //$("#Gr").val($(`#Gr option[value='${proc.Gr}'`).text())
@@ -335,17 +342,19 @@ function modalProclamatore(CP_Anag, eliminato) {
     $("#ModalProclamatore").modal("show")
 }
 
-function inverti(input) {
-    if ($(input).is(":checked")) {
-        classes = "." + $(input).attr("class").replace(/\s+/, ".");
-        $(classes).not(input).prop("checked", false);
-    }
-}
-
 async function salvaProclamatore(CP_Anag) {
+    $('#FormProclamatore').find(":input").each(function () {
+        if (!this.checkValidity()) {
+            $(this).addClass("is-invalid");
+        }
+    });
+    if ($('#FormProclamatore').find(".is-invalid").length > 0) {
+        return
+    }
     $("#ModalProclamatore").modal("hide")
     if (CP_Anag == '') {
-        proclamatori.push({
+        db.anagrafica.push({
+            'id': new Date().getTime(),
             'Nome': $("#Nome").val(),
             'Nome2': $("#Nome2").val(),
             'Ind': $("#Ind").val(),
@@ -356,34 +365,34 @@ async function salvaProclamatore(CP_Anag) {
             'Email': $("#Email").val(),
             'Emerg': $("#Emerg").val(),
             'S': $('input[name=S]:checked').val(),
-            'U_AP': ($('#U:checked').val() ?? '') + ($('#P:checked').val() ?? ''),
-            'SM_AN': ($('#SM:checked').val() ?? '') + ($('#AN:checked').val() ?? ''),
-            'PR_PS': ($('#PR:checked').val() ?? '') + ($('#PS:checked').val() ?? ''),
-            'Attivo': $('input[name=Attivo]:checked').val(),
+            'U_AP': ($(`input[name=U_AP]:checked`).val() ?? ''),
+            'SM_AN': ($(`input[name=SM_AN]:checked`).val() ?? ''),
+            'PR_PS': ($(`input[name=PR_PS]:checked`).val() ?? ''),
+            'Attivo': ($('input[name=Attivo]:checked').val() === 'true'),
             'Gr': Number($('#Gr').find(":selected").val()),
-            'Elimina': "0",
-            'id': new Date().getTime() + Math.random()
+            'Eliminato': false,
+            'rapporti': [],
         })
     } else {
-        let n = proclamatori.findIndex((item) => item.id === Number(CP_Anag))
-        proclamatori[n].Nome = $("#Nome").val()
-        proclamatori[n].Nome2 = $("#Nome2").val()
-        proclamatori[n].Ind = $("#Ind").val()
-        proclamatori[n].D_Nasc = $("#D_Nasc").val()
-        proclamatori[n].D_Batt = $("#D_Batt").val()
-        proclamatori[n].Tel = $("#Tel").val()
-        proclamatori[n].Cel = $("#Cel").val()
-        proclamatori[n].Email = $("#Email").val()
-        proclamatori[n].Emerg = $("#Emerg").val()
-        proclamatori[n].S = $('input[name=S]:checked').val()
-        proclamatori[n].U_AP = ($('#U:checked').val() ?? '') + ($('#P:checked').val() ?? '')
-        proclamatori[n].SM_AN = ($('#SM:checked').val() ?? '') + ($('#AN:checked').val() ?? '')
-        proclamatori[n].PR_PS = ($('#PR:checked').val() ?? '') + ($('#PS:checked').val() ?? '')
-        proclamatori[n].Attivo = $('input[name=Attivo]:checked').val()
-        proclamatori[n].Gr = Number($('#Gr').find(":selected").val())
+        let n = db.anagrafica.findIndex((item) => item.id === Number(CP_Anag))
+        db.anagrafica[n].Nome = $("#Nome").val()
+        db.anagrafica[n].Nome2 = $("#Nome2").val()
+        db.anagrafica[n].Ind = $("#Ind").val()
+        db.anagrafica[n].D_Nasc = $("#D_Nasc").val()
+        db.anagrafica[n].D_Batt = $("#D_Batt").val()
+        db.anagrafica[n].Tel = $("#Tel").val()
+        db.anagrafica[n].Cel = $("#Cel").val()
+        db.anagrafica[n].Email = $("#Email").val()
+        db.anagrafica[n].Emerg = $("#Emerg").val()
+        db.anagrafica[n].S = $('input[name=S]:checked').val()
+        db.anagrafica[n].U_AP = ($(`input[name=U_AP]:checked`).val() ?? '')
+        db.anagrafica[n].SM_AN = ($(`input[name=SM_AN]:checked`).val() ?? '')
+        db.anagrafica[n].PR_PS = ($(`input[name=PR_PS]:checked`).val() ?? '')
+        db.anagrafica[n].Attivo = ($('input[name=Attivo]:checked').val() === 'true')
+        db.anagrafica[n].Gr = Number($('#Gr').find(":selected").val())
     }
     try {
-        result = await window.electronAPI.writeFile('anagrafica', proclamatori)
+        result = await window.electronAPI.writeFile('db', db)
     } catch (e) {
         loadPage()
         toast(new Date().getTime(), "rosso", e, 10000)
@@ -395,31 +404,31 @@ async function salvaProclamatore(CP_Anag) {
 
 async function eliminaProclamatore(CP_Anag) {
     $("#ModalProclamatore").modal("hide")
-    let n = proclamatori.findIndex((item) => item.id === Number(CP_Anag))
-    proclamatori[n].Elimina = '1'
+    let n = db.anagrafica.findIndex((item) => item.id === Number(CP_Anag))
+    db.anagrafica[n].Eliminato = true
     try {
-        result = await window.electronAPI.writeFile('anagrafica', proclamatori)
+        result = await window.electronAPI.writeFile('db', db)
     } catch (e) {
         loadPage()
         toast(new Date().getTime(), "rosso", e, 10000)
         return
     }
-    toast(new Date().getTime(), "verde", `${proclamatori[n].Nome} è stato eliminato`)
+    toast(new Date().getTime(), "verde", `${db.anagrafica[n].Nome} è stato eliminato`)
     loadPage()
 }
 
 async function ripristinaProclamatore(CP_Anag) {
     $("#ModalProclamatore").modal("hide")
-    let n = proclamatori.findIndex((item) => item.id === Number(CP_Anag))
-    proclamatori[n].Elimina = '0'
+    let n = db.anagrafica.findIndex((item) => item.id === Number(CP_Anag))
+    db.anagrafica[n].Eliminato = false
     try {
-        result = await window.electronAPI.writeFile('anagrafica', proclamatori)
+        result = await window.electronAPI.writeFile('db', db)
     } catch (e) {
         loadPage()
         toast(new Date().getTime(), "rosso", e, 10000)
         return
     }
-    toast(new Date().getTime(), "verde", `${proclamatori[n].Nome} è stato ripristinato`)
+    toast(new Date().getTime(), "verde", `${db.anagrafica[n].Nome} è stato ripristinato`)
     loadPage()
 }
 

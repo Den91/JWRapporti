@@ -1,10 +1,7 @@
-var presenti
+var db
+var mese
 var keysI = ['i1', 'i2', 'i3', 'i4', 'i5']
 var keysF = ['f1', 'f2', 'f3', 'f4', 'f5',]
-
-$(window).resize(function () {
-    marginBody()
-})
 
 $(document).ready(async function () {
     navbar("presenti")
@@ -13,19 +10,11 @@ $(document).ready(async function () {
 })
 
 async function loadPage() {
+    db = await window.electronAPI.readFile('db')
     mese = $('[name="mese"]').val()
     sessionStorage.setItem('mese', mese)
     if (mese != "") {
-        presenti = await window.electronAPI.readFile('presenti')
-        presenti.sort(function (a, b) {
-            if (a.Mese < b.Mese)
-                return -1
-            if (a.Mese > b.Mese)
-                return 1
-            return 0
-        })
-        //console.log(presenti)
-        index = presenti.findIndex(item => item.Mese == mese)
+        index = db.presenti.findIndex(item => item.Mese == mese)
         $("#TablePresenti tbody").html('')
         if (index != -1) {
             $("#TablePresenti tbody").append(`
@@ -53,19 +42,19 @@ async function loadPage() {
             totI = cI = 0
             totF = cF = 0
             keysI.forEach(function (key, indice) {
-                if (presenti[index][key] != null && presenti[index][key] != "") {
-                    $(`#TablePresenti tbody tr:eq(0) td:eq(${indice + 1})`).html(presenti[index][key])
-                    if (!isNaN(Number(presenti[index][key]))) {
-                        totI += Number(presenti[index][key])
+                if (db.presenti[index][key] != null && db.presenti[index][key] != "") {
+                    $(`#TablePresenti tbody tr:eq(0) td:eq(${indice + 1})`).html(db.presenti[index][key])
+                    if (!isNaN(Number(db.presenti[index][key]))) {
+                        totI += Number(db.presenti[index][key])
                         cI++
                     }
                 }
             })
             keysF.forEach(function (key, indice) {
-                if (presenti[index][key] != null && presenti[index][key] != "") {
-                    $(`#TablePresenti tbody tr:eq(1) td:eq(${indice + 1})`).html(presenti[index][key])
-                    if (!isNaN(Number(presenti[index][key]))) {
-                        totF += Number(presenti[index][key])
+                if (db.presenti[index][key] != null && db.presenti[index][key] != "") {
+                    $(`#TablePresenti tbody tr:eq(1) td:eq(${indice + 1})`).html(db.presenti[index][key])
+                    if (!isNaN(Number(db.presenti[index][key]))) {
+                        totF += Number(db.presenti[index][key])
                         cF++
                     }
                 }
@@ -81,57 +70,46 @@ async function loadPage() {
 }
 
 function modalPresenti() {
-    mese = $('[name="mese"]').val()
     $("#FormPresenti").trigger("reset")
     $("#ModalPresentiTitle").html(`Presenti - ${new Date(mese).toLocaleString('it-IT', { month: 'long', year: 'numeric' })}`)
-    index = presenti.findIndex(item => item.Mese == mese)
+    index = db.presenti.findIndex(item => item.Mese == mese)
     if (index != -1) {
-        $(`#i1`).val(presenti[index].i1)
-        $(`#i2`).val(presenti[index].i2)
-        $(`#i3`).val(presenti[index].i3)
-        $(`#i4`).val(presenti[index].i4)
-        $(`#i5`).val(presenti[index].i5)
-        $(`#f1`).val(presenti[index].f1)
-        $(`#f2`).val(presenti[index].f2)
-        $(`#f3`).val(presenti[index].f3)
-        $(`#f4`).val(presenti[index].f4)
-        $(`#f5`).val(presenti[index].f5)
+        $(`#i1`).val(db.presenti[index].i1)
+        $(`#i2`).val(db.presenti[index].i2)
+        $(`#i3`).val(db.presenti[index].i3)
+        $(`#i4`).val(db.presenti[index].i4)
+        $(`#i5`).val(db.presenti[index].i5)
+        $(`#f1`).val(db.presenti[index].f1)
+        $(`#f2`).val(db.presenti[index].f2)
+        $(`#f3`).val(db.presenti[index].f3)
+        $(`#f4`).val(db.presenti[index].f4)
+        $(`#f5`).val(db.presenti[index].f5)
         $('#EliminaPresenti').removeClass('d-none')
     }
     $("#ModalPresenti").modal("show")
 }
 
 async function salvaPresenti() {
-    mese = $('[name="mese"]').val()
     if ($('input.presenti').filter(function () { return $(this).val() == "" }).length != 10) {
         $("#ModalPresenti").modal("hide")
-        index = presenti.findIndex(item => item.Mese == mese)
+        index = db.presenti.findIndex(item => item.Mese == mese)
         if (index != -1) {
             console.log('Modifica')
-            presenti[index].i1 = $(`#i1`).val() == '' ? null : $(`#i1`).val()
-            presenti[index].i2 = $(`#i2`).val() == '' ? null : $(`#i2`).val()
-            presenti[index].i3 = $(`#i3`).val() == '' ? null : $(`#i3`).val()
-            presenti[index].i4 = $(`#i4`).val() == '' ? null : $(`#i4`).val()
-            presenti[index].i5 = $(`#i5`).val() == '' ? null : $(`#i5`).val()
-            presenti[index].f1 = $(`#f1`).val() == '' ? null : $(`#f1`).val()
-            presenti[index].f2 = $(`#f2`).val() == '' ? null : $(`#f2`).val()
-            presenti[index].f3 = $(`#f3`).val() == '' ? null : $(`#f3`).val()
-            presenti[index].f4 = $(`#f4`).val() == '' ? null : $(`#f4`).val()
-            presenti[index].f5 = $(`#f5`).val() == '' ? null : $(`#f5`).val()
+            db.presenti[index].i1 = $(`#i1`).val() == '' ? null : $(`#i1`).val()
+            db.presenti[index].i2 = $(`#i2`).val() == '' ? null : $(`#i2`).val()
+            db.presenti[index].i3 = $(`#i3`).val() == '' ? null : $(`#i3`).val()
+            db.presenti[index].i4 = $(`#i4`).val() == '' ? null : $(`#i4`).val()
+            db.presenti[index].i5 = $(`#i5`).val() == '' ? null : $(`#i5`).val()
+            db.presenti[index].f1 = $(`#f1`).val() == '' ? null : $(`#f1`).val()
+            db.presenti[index].f2 = $(`#f2`).val() == '' ? null : $(`#f2`).val()
+            db.presenti[index].f3 = $(`#f3`).val() == '' ? null : $(`#f3`).val()
+            db.presenti[index].f4 = $(`#f4`).val() == '' ? null : $(`#f4`).val()
+            db.presenti[index].f5 = $(`#f5`).val() == '' ? null : $(`#f5`).val()
         } else {
             console.log('Inserisci')
-            var id = new Date().getTime() + Math.random()
-            // controlla se l'id è già presente
-            /*
-            for (let i = 0; i < presenti.length; i++) {
-                if (presenti[i].id == id) {
-                    await sleep(2)
-                    id = new Date().getTime() + Math.random()
-                }
-            }
-            */
-            presenti.push({
-                'Mese': $('[name="mese"]').val(),
+            var id = new Date().getTime()
+            db.presenti.push({
+                'Mese': mese,
                 'i1': $(`#i1`).val(),
                 'i2': $(`#i2`).val(),
                 'i3': $(`#i3`).val(),
@@ -146,7 +124,7 @@ async function salvaPresenti() {
             })
         }
         try {
-            result = await window.electronAPI.writeFile('presenti', presenti)
+            result = await window.electronAPI.writeFile('db', db)
         } catch (e) {
             loadPage()
             toast(new Date().getTime(), "rosso", e, 10000)
@@ -159,11 +137,10 @@ async function salvaPresenti() {
 
 async function eliminaPresenti() {
     $("#ModalPresenti").modal("hide")
-    mese = $('[name="mese"]').val()
-    index = presenti.findIndex(item => item.Mese == mese)
-    presenti.splice(index, 1)
+    index = db.presenti.findIndex(item => item.Mese == mese)
+    db.presenti.splice(index, 1)
     try {
-        result = await window.electronAPI.writeFile('presenti', presenti)
+        result = await window.electronAPI.writeFile('db', db)
     } catch (e) {
         loadPage()
         toast(new Date().getTime(), "rosso", e, 10000)

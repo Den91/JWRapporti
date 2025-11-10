@@ -1,272 +1,160 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="utf-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1, shrink-to-fit=no"
-    />
-    <link
-      href="../node_modules/bootstrap/dist/css/bootstrap.min.css"
-      rel="stylesheet"
-    />
-    <link
-      rel="stylesheet"
-      href="../node_modules/bootstrap-icons/font/bootstrap-icons.css"
-    />
-    <script src="../node_modules/jquery/dist/jquery.min.js"></script>
-    <script src="../node_modules/chart.js/dist/chart.js"></script>
-    <script type="text/javascript" src="../include.js"></script>
-  </head>
 
-  <body>
-    <div class="position-relative" style="z-index: 11">
-      <div class="toast-container top-0 end-0 p-3"></div>
-    </div>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+  <link href="../node_modules/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="../node_modules/bootstrap-icons/font/bootstrap-icons.css" />
+  <script src="../node_modules/jquery/dist/jquery.min.js"></script>
+  <script type="text/javascript" src="../include.js"></script>
+</head>
 
-    <div class="container-fluid pt-3">
-      <div class="row mb-3">
-        <div class="col-2">
-          <div class="form-floating">
-            <input
-              type="month"
-              class="form-control"
-              name="mese"
-              value=""
-              onchange="loadPage()"
-            />
-            <label>Mese</label>
-          </div>
+<body>
+  <div class="position-relative" style="z-index: 11">
+    <div class="toast-container top-0 end-0 p-3"></div>
+  </div>
+
+  <div class="container-fluid pt-3">
+    <div class="row mb-3">
+      <div class="col-2">
+        <div class="form-floating">
+          <input type="month" class="form-control" name="mese" value="" onchange="loadPage()" />
+          <label>Mese</label>
         </div>
-        <div class="col">
-          <div class="card">
-            <div class="card-header d-flex">
-              <span class="me-auto my-auto">Presenti</span>
-              <button
-                type="button"
-                class="btn btn-sm btn-success"
-                onclick="modalPresenti()"
-              >
-                <i class="bi bi-pencil-square"></i> Compila
-              </button>
-            </div>
-            <div class="card-body p-2 pt-0">
-              <div class="table-responsive">
-                <table class="table table-hover" id="TablePresenti">
-                  <thead>
-                    <tr>
-                      <th>Adunanza</th>
-                      <th class="text-center">1° sett</th>
-                      <th class="text-center">2° sett</th>
-                      <th class="text-center">3° sett</th>
-                      <th class="text-center">4° sett</th>
-                      <th class="text-center">5° sett</th>
-                      <th class="text-center">Totale</th>
-                      <th class="text-center">Media</th>
-                    </tr>
-                  </thead>
-                  <tbody></tbody>
-                </table>
-              </div>
+      </div>
+      <div class="col">
+        <div class="card">
+          <div class="card-header d-flex">
+            <span class="me-auto my-auto">Presenti</span>
+            <button type="button" class="btn btn-sm btn-success" onclick="modalPresenti()">
+              <i class="bi bi-pencil-square"></i> Compila
+            </button>
+          </div>
+          <div class="card-body p-2 pt-0">
+            <div class="table-responsive">
+              <table class="table table-hover" id="TablePresenti">
+                <thead>
+                  <tr>
+                    <th>Adunanza</th>
+                    <th class="text-center">1° sett</th>
+                    <th class="text-center">2° sett</th>
+                    <th class="text-center">3° sett</th>
+                    <th class="text-center">4° sett</th>
+                    <th class="text-center">5° sett</th>
+                    <th class="text-center">Totale</th>
+                    <th class="text-center">Media</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
             </div>
           </div>
         </div>
       </div>
     </div>
+  </div>
 
-    <div class="modal fade" id="ModalPresenti">
-      <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-          <!-- Modal Header -->
-          <div class="modal-header">
-            <h4 class="modal-title" id="ModalPresentiTitle">Presenti</h4>
-            <button
-              type="button"
-              class="btn-close"
-              data-bs-dismiss="modal"
-              aria-label="Close"
-            ></button>
-          </div>
+  <div class="modal fade" id="ModalPresenti">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <!-- Modal Header -->
+        <div class="modal-header">
+          <h4 class="modal-title" id="ModalPresentiTitle">Presenti</h4>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
 
-          <!-- Modal body -->
-          <div class="modal-body">
-            <form method="post" id="FormPresenti" class="mb-0">
-              <div class="row g-2 mb-3">
-                <div class="col-4 align-self-center">
-                  Adunanza infrasettimanale
-                </div>
-                <div class="col">
-                  <div class="form-floating">
-                    <input
-                      type="text"
-                      class="form-control presenti"
-                      name="i1"
-                      id="i1"
-                      value=""
-                      min="0"
-                      maxlength="5"
-                    />
-                    <label for="i1">1 sett.</label>
-                  </div>
-                </div>
-                <div class="col">
-                  <div class="form-floating">
-                    <input
-                      type="text"
-                      class="form-control presenti"
-                      name="i2"
-                      id="i2"
-                      value=""
-                      min="0"
-                      maxlength="5"
-                    />
-                    <label for="i2">2 sett.</label>
-                  </div>
-                </div>
-                <div class="col">
-                  <div class="form-floating">
-                    <input
-                      type="text"
-                      class="form-control presenti"
-                      name="i3"
-                      id="i3"
-                      value=""
-                      min="0"
-                      maxlength="5"
-                    />
-                    <label for="i3">3 sett.</label>
-                  </div>
-                </div>
-                <div class="col">
-                  <div class="form-floating">
-                    <input
-                      type="text"
-                      class="form-control presenti"
-                      name="i4"
-                      id="i4"
-                      value=""
-                      min="0"
-                      maxlength="5"
-                    />
-                    <label for="i4">4 sett.</label>
-                  </div>
-                </div>
-                <div class="col">
-                  <div class="form-floating">
-                    <input
-                      type="text"
-                      class="form-control presenti"
-                      name="i5"
-                      id="i5"
-                      value=""
-                      min="0"
-                      maxlength="5"
-                    />
-                    <label for="i5">5 sett.</label>
-                  </div>
+        <!-- Modal body -->
+        <div class="modal-body">
+          <form method="post" id="FormPresenti" class="mb-0">
+            <div class="row g-2 mb-3">
+              <div class="col-4 align-self-center">
+                Adunanza infrasettimanale
+              </div>
+              <div class="col">
+                <div class="form-floating">
+                  <input type="text" class="form-control presenti" name="i1" id="i1" value="" min="0" maxlength="5" />
+                  <label for="i1">1 sett.</label>
                 </div>
               </div>
-              <div class="row g-2 mb-3">
-                <div class="col-4 align-self-center">
-                  Adunanza fine settimana
-                </div>
-                <div class="col">
-                  <div class="form-floating">
-                    <input
-                      type="text"
-                      class="form-control presenti"
-                      name="f1"
-                      id="f1"
-                      value=""
-                      min="0"
-                      maxlength="5"
-                    />
-                    <label for="f1">1 sett.</label>
-                  </div>
-                </div>
-                <div class="col">
-                  <div class="form-floating">
-                    <input
-                      type="text"
-                      class="form-control presenti"
-                      name="f2"
-                      id="f2"
-                      value=""
-                      min="0"
-                      maxlength="5"
-                    />
-                    <label for="f2">2 sett.</label>
-                  </div>
-                </div>
-                <div class="col">
-                  <div class="form-floating">
-                    <input
-                      type="text"
-                      class="form-control presenti"
-                      name="f3"
-                      id="f3"
-                      value=""
-                      min="0"
-                      maxlength="5"
-                    />
-                    <label for="f3">3 sett.</label>
-                  </div>
-                </div>
-                <div class="col">
-                  <div class="form-floating">
-                    <input
-                      type="text"
-                      class="form-control presenti"
-                      name="f4"
-                      id="f4"
-                      value=""
-                      min="0"
-                      maxlength="5"
-                    />
-                    <label for="f4">4 sett.</label>
-                  </div>
-                </div>
-                <div class="col">
-                  <div class="form-floating">
-                    <input
-                      type="text"
-                      class="form-control presenti"
-                      name="f5"
-                      id="f5"
-                      value=""
-                      min="0"
-                      maxlength="5"
-                    />
-                    <label for="f5">5 sett.</label>
-                  </div>
+              <div class="col">
+                <div class="form-floating">
+                  <input type="text" class="form-control presenti" name="i2" id="i2" value="" min="0" maxlength="5" />
+                  <label for="i2">2 sett.</label>
                 </div>
               </div>
-            </form>
-          </div>
-          <!-- Modal footer -->
-          <div class="modal-footer" id="footModalGruppo">
-            <button
-              class="btn btn-success order-2"
-              name="SalvaPresenti"
-              id="SalvaPresenti"
-              onclick="salvaPresenti()"
-            >
-              Salva
-            </button>
-            <button
-              class="btn btn-danger d-none order-1"
-              id="EliminaPresenti"
-              onclick="eliminaPresenti()"
-            >
-              <i class="bi bi-trash3"></i>
-            </button>
-          </div>
+              <div class="col">
+                <div class="form-floating">
+                  <input type="text" class="form-control presenti" name="i3" id="i3" value="" min="0" maxlength="5" />
+                  <label for="i3">3 sett.</label>
+                </div>
+              </div>
+              <div class="col">
+                <div class="form-floating">
+                  <input type="text" class="form-control presenti" name="i4" id="i4" value="" min="0" maxlength="5" />
+                  <label for="i4">4 sett.</label>
+                </div>
+              </div>
+              <div class="col">
+                <div class="form-floating">
+                  <input type="text" class="form-control presenti" name="i5" id="i5" value="" min="0" maxlength="5" />
+                  <label for="i5">5 sett.</label>
+                </div>
+              </div>
+            </div>
+            <div class="row g-2 mb-3">
+              <div class="col-4 align-self-center">
+                Adunanza fine settimana
+              </div>
+              <div class="col">
+                <div class="form-floating">
+                  <input type="text" class="form-control presenti" name="f1" id="f1" value="" min="0" maxlength="5" />
+                  <label for="f1">1 sett.</label>
+                </div>
+              </div>
+              <div class="col">
+                <div class="form-floating">
+                  <input type="text" class="form-control presenti" name="f2" id="f2" value="" min="0" maxlength="5" />
+                  <label for="f2">2 sett.</label>
+                </div>
+              </div>
+              <div class="col">
+                <div class="form-floating">
+                  <input type="text" class="form-control presenti" name="f3" id="f3" value="" min="0" maxlength="5" />
+                  <label for="f3">3 sett.</label>
+                </div>
+              </div>
+              <div class="col">
+                <div class="form-floating">
+                  <input type="text" class="form-control presenti" name="f4" id="f4" value="" min="0" maxlength="5" />
+                  <label for="f4">4 sett.</label>
+                </div>
+              </div>
+              <div class="col">
+                <div class="form-floating">
+                  <input type="text" class="form-control presenti" name="f5" id="f5" value="" min="0" maxlength="5" />
+                  <label for="f5">5 sett.</label>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+        <!-- Modal footer -->
+        <div class="modal-footer" id="footModalGruppo">
+          <button class="btn btn-success order-2" name="SalvaPresenti" id="SalvaPresenti" onclick="salvaPresenti()">
+            Salva
+          </button>
+          <button class="btn btn-danger d-none order-1" id="EliminaPresenti" onclick="eliminaPresenti()">
+            <i class="bi bi-trash3"></i>
+          </button>
         </div>
       </div>
     </div>
+  </div>
 
-    <script src="renderer.js"></script>
-    <!-- Option 1: Bootstrap Bundle with Popper -->
-    <script src="../node_modules/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-  </body>
+  <script src="renderer.js"></script>
+  <!-- Option 1: Bootstrap Bundle with Popper -->
+  <script src="../node_modules/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
 </html>

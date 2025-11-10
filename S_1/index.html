@@ -1,81 +1,89 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="utf-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1, shrink-to-fit=no"
-    />
-    <link
-      href="../node_modules/bootstrap/dist/css/bootstrap.min.css"
-      rel="stylesheet"
-    />
-    <link
-      rel="stylesheet"
-      href="../node_modules/bootstrap-icons/font/bootstrap-icons.css"
-    />
-    <script src="../node_modules/jquery/dist/jquery.min.js"></script>
-    <script src="../node_modules/chart.js/dist/chart.js"></script>
-    <script type="text/javascript" src="../include.js"></script>
-    <script></script>
-  </head>
 
-  <body>
-    <div class="container-fluid pt-3">
-      <div class="row mb-3">
-        <div class="col-2">
-          <div class="form-floating">
-            <input
-              type="month"
-              class="form-control"
-              name="mese"
-              value=""
-              onchange="visualS1()"
-            />
-            <label>Mese</label>
-          </div>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+  <link href="../node_modules/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="../node_modules/bootstrap-icons/font/bootstrap-icons.css" />
+  <script src="../node_modules/jquery/dist/jquery.min.js"></script>
+  <script type="text/javascript" src="../include.js"></script>
+  <script></script>
+</head>
+
+<body>
+  <div class="container-fluid pt-3">
+    <div class="row mb-3">
+      <div class="col-2">
+        <div class="form-floating">
+          <input type="month" class="form-control" name="mese" value="" onchange="visualS1()" />
+          <label>Mese</label>
         </div>
-        <div class="col" id="DivTotali">
-          <div class="card d-none" id="CardTotali">
-            <div class="card-header d-flex">
-              <span class="me-auto my-auto">Totali</span>
+      </div>
+      <div class="col" id="DivTotali">
+        <div class="card d-none" id="CardTotali">
+          <div class="card-header d-flex">
+            <span class="me-auto my-auto">Totali</span>
+          </div>
+          <div class="card-body" id="CardBodyTotali">
+            <div class="row">
+              <div class="col text-center">
+                <span class="fw-bold">Proclamatori attivi: <span id="proc_attivi"></span></span>
+              </div>
+              <div class="col text-center">
+                <span class="fw-bold">Media dei presenti all’adunanza del fine settimana:
+                  <span id="media_adun"></span></span>
+              </div>
             </div>
-            <div class="card-body" id="CardBodyTotali">
-              <div class="row">
-                <div class="col text-center">
-                  <span class="fw-bold"
-                    >Proclamatori attivi: <span id="proc_attivi"></span
-                  ></span>
-                </div>
-                <div class="col text-center">
-                  <span class="fw-bold"
-                    >Media dei presenti all’adunanza del fine settimana:
-                    <span id="media_adun"></span
-                  ></span>
-                </div>
-              </div>
-              <div class="table-responsive">
-                <table class="table mb-0" id="TableTotali">
-                  <thead>
-                    <tr>
-                      <th>Incarico <span></span></th>
-                      <th class="text-center">N. <span></span></th>
-                      <th class="text-center">Studi <span></span></th>
-                      <th class="text-center">Ore <span></span></th>
-                    </tr>
-                  </thead>
-                  <tbody></tbody>
-                  <tfoot></tfoot>
-                </table>
-              </div>
+            <div class="table-responsive">
+              <table class="table mb-0" id="TableTotali">
+                <thead>
+                  <tr>
+                    <th>Incarico <span></span></th>
+                    <th class="text-center">N. <span></span></th>
+                    <th class="text-center">Studi <span></span></th>
+                    <th class="text-center">Ore <span></span></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Proclamatori</td>
+                    <td class="text-center" id="pN"></td>
+                    <td class="text-center" id="pStudi"></td>
+                    <td class="text-center"></td>
+                  </tr>
+                  <tr>
+                    <td>Pionieri ausiliari</td>
+                    <td class="text-center" id="paN"></td>
+                    <td class="text-center" id="paStudi"></td>
+                    <td class="text-center" id="paOre"></td>
+                  </tr>
+                  <tr>
+                    <td>Pionieri regolari</td>
+                    <td class="text-center" id="prN"></td>
+                    <td class="text-center" id="prStudi"></td>
+                    <td class="text-center" id="prOre"></td>
+                  </tr>
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <td>Totale rapporti</td>
+                    <td class="text-center" id="totN"></td>
+                    <td class="text-center" id="totStudi"></td>
+                    <td class="text-center" id="totOre"></td>
+                  </tr>
+                </tfoot>
+              </table>
             </div>
           </div>
         </div>
       </div>
     </div>
+  </div>
 
-    <script src="renderer.js"></script>
-    <!-- Option 1: Bootstrap Bundle with Popper -->
-    <script src="../node_modules/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-  </body>
+  <script src="renderer.js"></script>
+  <!-- Option 1: Bootstrap Bundle with Popper -->
+  <script src="../node_modules/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
 </html>

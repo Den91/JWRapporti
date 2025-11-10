@@ -1,10 +1,5 @@
-var gruppi
-var proclamatori
-var rapporti
-
-$(window).resize(function () {
-    marginBody()
-})
+var db
+var mese
 
 $("th").click(function () {
     ordinaTabella(this);
@@ -29,132 +24,60 @@ $(document).ready(async function () {
 async function loadPage() {
     mese = $('[name="mese"]').val()
     sessionStorage.setItem('mese', mese)
-    gruppi = await window.electronAPI.readFile('gruppi')
-    proclamatori = await window.electronAPI.readFile('anagrafica')
-    proclamatori.sort(function (a, b) {
-        if (a.Nome < b.Nome)
-            return -1
-        if (a.Nome > b.Nome)
-            return 1
-        return 0
-    })
+    db = await window.electronAPI.readFile('db')
     $("#FormRapporti").html(``)
     $("#TBodyRapporti").html('')
     $('#buttonPDF').addClass('d-none')
     if (mese != "") {
-        if (mese < "2023-10") {
-            $("#THeadRapporti").html(`
-                    <tr>
-                        <th>Gr <span></span></th>
-                        <th>Nome <span></span></th>
-                        <th class="text-center">Inc. <span></span></th>
-                        <th class="text-center">Pubb. <span></span></th>
-                        <th class="text-center">Video <span></span></th>
-                        <th class="text-center">Ore <span></span></th>
-                        <th class="text-center">Visite <span></span></th>
-                        <th class="text-center">Studi <span></span></th>
-                        <th>Note <span></span></th>
-                    </tr>
-                `)
-        } else {
-            $("#THeadRapporti").html(`
-                    <tr>
-                        <th>Gr <span></span></th>
-                        <th>Nome <span></span></th>
-                        <th class="text-center">Inc. <span></span></th>
-                        <th class="text-center">Ore <span></span></th>
-                        <th class="text-center">Studi <span></span></th>
-                        <th>Note <span></span></th>
-                    </tr>
-                `)
-        }
-        rapporti = await window.electronAPI.readFile('rapporti')
-        rapporti.sort(function (a, b) {
-            if (a.Mese < b.Mese)
-                return 1
-            if (a.Mese > b.Mese)
-                return -1
-            return 0
-        })
-        rapporti_mese = rapporti.filter(rapporto => rapporto.Mese == mese)
-        if (rapporti_mese.length != 0) {
-            $('#buttonPDF').removeClass('d-none')
-            if (mese < "2023-10") {
-                for (rapporto of rapporti_mese) {
-                    proc = proclamatori.find(item => item.id == rapporto.CE_Anag)
-                    if (rapporto.Gr == null) {
-                        gruppo = ''
-                    } else {
-                        gruppo = gruppi.find(item => item.id == rapporto.Gr)
-                        if (gruppo != undefined) {
-                            gruppo = gruppo.Num
-                        } else {
-                            gruppo = ''
-                        }
-                    }
-                    $("#TBodyRapporti").append($('<tr></tr>'))
-                    $("#TBodyRapporti tr:last").append($(`<td>${gruppo}</td>`))
-                    $("#TBodyRapporti tr:last").append($(`<td class="nomeProc">${proc.Nome}</td>`))
-                    $("#TBodyRapporti tr:last").append($(`<td class="text-center">${rapporto.Inc}</td>`))
-                    $("#TBodyRapporti tr:last").append($(`<td class="text-center">${rapporto.Pubb || ""}</td>`))
-                    $("#TBodyRapporti tr:last").append($(`<td class="text-center">${rapporto.Video || ""}</td>`))
-                    $("#TBodyRapporti tr:last").append($(`<td class="text-center">${rapporto.Ore || ""}</td>`))
-                    $("#TBodyRapporti tr:last").append($(`<td class="text-center">${rapporto.VU || ""}</td>`))
-                    $("#TBodyRapporti tr:last").append($(`<td class="text-center">${rapporto.Studi || ""}</td>`))
-                    $("#TBodyRapporti tr:last").append($(`
-                        <td>
-                            <div class="d-flex">
-                                <div class="flex-grow-1">
-                                    <span class="">${rapporto.Note}</span>
-                                </div>
-                                <div class="hover-btn d-none">
-                                    <button
-                                        class="btn btn-danger btn-sm px-1 py-0"
-                                        id="pulsanteEliminaRapporto"
-                                        onclick="modalAvvisoRapporto('${rapporto.id}','${proc.Nome}')"
-                                    >
-                                        <i class="bi bi-trash3"></i>
-                                    </button>
-                                </div>
-                            </div>
-                        </td>`))
+        $("#THeadRapporti").html(`
+            <tr>
+                <th>Gr <span></span></th>
+                <th>Nome <span></span></th>
+                <th class="text-center">Inc. <span></span></th>
+                <th class="text-center">Ore <span></span></th>
+                <th class="text-center">Studi <span></span></th>
+                <th>Note <span></span></th>
+            </tr>
+        `)
+        db.anagrafica.forEach(p => {
+            i = p.rapporti.findIndex(r => r.Mese == mese)
+            if (i != -1) {
+                if (p.rapporti[i].Gr == null) {
+                    gruppo = ''
+                } else {
+                    gruppo = db.gruppi.find(item => item.id == p.rapporti[i].Gr)
                 }
-            } else {
-                for (rapporto of rapporti_mese) {
-                    proc = proclamatori.find(item => item.id == rapporto.CE_Anag)
-                    if (rapporto.Gr == null) {
-                        gruppo = ''
-                    } else {
-                        gruppo = gruppi.find(item => item.id == rapporto.Gr)['Num']
-                    }
-                    $("#TBodyRapporti").append($('<tr></tr>'))
-                    $("#TBodyRapporti tr:last").append($(`<td>${gruppo}</td>`))
-                    $("#TBodyRapporti tr:last").append($(`<td class="nomeProc">${proc.Nome}</td>`))
-                    $("#TBodyRapporti tr:last").append($(`<td class="text-center">${rapporto.Inc}</td>`))
-                    $("#TBodyRapporti tr:last").append($(`<td class="text-center">${rapporto.Ore || ""}</td>`))
-                    $("#TBodyRapporti tr:last").append($(`<td class="text-center">${rapporto.Studi || ""}</td>`))
-                    $("#TBodyRapporti tr:last").append($(`
+                $("#TBodyRapporti").append($(`
+                    <tr>
+                        <td>${gruppo ? gruppo.Num : ''}</td>
+                        <td class="nomeProc">${p.Nome}</td>
+                        <td class="text-center">${p.rapporti[i].Inc}</td>
+                        <td class="text-center">${p.rapporti[i].Ore || ""}</td>
+                        <td class="text-center">${p.rapporti[i].Studi || ""}</td>
                         <td>
                             <div class="d-flex">
                                 <div class="flex-grow-1">
                                     <span class="">
-                                        ${rapporto.Note}${rapporto.Abbuono > 0 ? ' - Abbuono ore: ' + rapporto.Abbuono : ''}
+                                        ${p.rapporti[i].Note}${p.rapporti[i].Abbuono > 0 ? ' - Abbuono ore: ' + p.rapporti[i].Abbuono : ''}
                                     </span>
                                 </div>
                                 <div class="hover-btn d-none">
                                     <button
                                         class="btn btn-danger btn-sm px-1 py-0"
                                         id="pulsanteEliminaRapporto"
-                                        onclick="modalAvvisoRapporto('${rapporto.id}','${proc.Nome}')"
+                                        onclick="modalAvvisoRapporto('${p.id}','${p.Nome}')"
                                     >
                                         <i class="bi bi-trash3"></i>
                                     </button>
                                 </div>
                             </div>
-                        </td>`))
-                }
+                        </td>
+                    </tr>
+                `))
             }
-
+        })
+        if ($("#TBodyRapporti tr").length > 0) {
+            $('#buttonPDF').removeClass('d-none')
             $("table:eq(0) th:eq(1)")[0].asc = null
             ordinaTabella($("table:eq(0) th:eq(1)")[0])
         }
@@ -162,10 +85,9 @@ async function loadPage() {
 }
 
 function modalRapporti() {
-    mese = $('[name="mese"]').val()
     $("#FormRapporti").html(``)
     $("#ModalRapportiTitle").html(`Rapporti - ${new Date(mese).toLocaleString('it-IT', { month: 'long', year: 'numeric' })}`)
-    for (gruppo of gruppi) {
+    for (gruppo of db.gruppi) {
         $("#FormRapporti").append(`
             <div id="DivGruppo${gruppo.id}" class="d-none DivGruppi">
                 <h5>Gruppo ${gruppo.Num} - ${gruppo.Sorv_Gr}</h5>
@@ -182,74 +104,64 @@ function modalRapporti() {
             <h5>Eliminati</h5>
         </div>
         `)
-    rapporti_mese = rapporti.filter(rapporto => rapporto.Mese == mese)
-    for (proclamatore of proclamatori) {
-        var rapporto = null
-        if (rapporti_mese) {
-            rapporto = rapporti_mese.find(item => item.CE_Anag == proclamatore.id)
-        }
-        //console.log(proclamatore.Nome, rapporto)
-        if (proclamatore.Elimina == 1) {
-            if (rapporto) {
-                $("#DivEliminati").removeClass('d-none').append(htmlRapporto(proclamatore))
-            }
+    db.anagrafica.forEach(proc => {
+        rapporto = proc.rapporti.find(item => item.Mese == mese)
+        if (proc.Eliminato && rapporto) {
+            $("#DivEliminati").removeClass('d-none').append(htmlRapporto(proc))
         } else {
-            if (proclamatore.Attivo == 0) {
-                $("#DivInattivi").removeClass('d-none').append(htmlRapporto(proclamatore))
+            if (proc.Attivo) {
+                $("#DivInattivi").removeClass('d-none').append(htmlRapporto(proc))
             } else {
-                if (proclamatore.Gr != '')
-                    $("#DivGruppo" + proclamatore.Gr)
+                if (proc.Gr != '')
+                    $("#DivGruppo" + proc.Gr)
                         .removeClass('d-none')
-                        .append(htmlRapporto(proclamatore))
+                        .append(htmlRapporto(proc))
                 else {
-                    $("#DivNoGruppo").removeClass('d-none').append(htmlRapporto(proclamatore))
+                    $("#DivNoGruppo").removeClass('d-none').append(htmlRapporto(proc))
                 }
             }
         }
-        $(`#Gr-${proclamatore.id}`).val(proclamatore.Gr)
-        if (proclamatore.PR_PS == 'PR' || proclamatore.PR_PS == 'PS') {
-            $(`#Ore-${proclamatore.id}`).removeAttr('disabled')
-            $(`#Studi-${proclamatore.id}`).removeAttr('disabled')
-            $(`#Note-${proclamatore.id}`).removeAttr('disabled')
-            $(`#Abbuono-${proclamatore.id}`).removeAttr('disabled')
+        if (proc.PR_PS == 'PR' || proc.PR_PS == 'PS') {
+            $(`#Ore-${proc.id}`).removeAttr('disabled')
+            $(`#Studi-${proc.id}`).removeAttr('disabled')
+            $(`#Note-${proc.id}`).removeAttr('disabled')
+            $(`#Abbuono-${proc.id}`).removeAttr('disabled')
         }
         if (rapporto) {
             if (rapporto.Inc == 'pr' || rapporto.Inc == 'ps') {
-                $(`#Ore-${proclamatore.id}`).removeAttr('disabled')
-                $(`#Studi-${proclamatore.id}`).removeAttr('disabled')
-                $(`#Note-${proclamatore.id}`).removeAttr('disabled')
-                $(`#Abbuono-${proclamatore.id}`).removeAttr('disabled')
+                $(`#Ore-${proc.id}`).removeAttr('disabled')
+                $(`#Studi-${proc.id}`).removeAttr('disabled')
+                $(`#Note-${proc.id}`).removeAttr('disabled')
+                $(`#Abbuono-${proc.id}`).removeAttr('disabled')
             }
             if (rapporto.Inc == 'pa') {
-                $(`#Ore-${proclamatore.id}`).removeAttr('disabled')
-                $(`#Studi-${proclamatore.id}`).removeAttr('disabled')
-                $(`#Note-${proclamatore.id}`).removeAttr('disabled')
+                $(`#Ore-${proc.id}`).removeAttr('disabled')
+                $(`#Studi-${proc.id}`).removeAttr('disabled')
+                $(`#Note-${proc.id}`).removeAttr('disabled')
             }
             if (rapporto.Inc == 'p') {
-                $(`#Studi-${proclamatore.id}`).removeAttr('disabled')
-                $(`#Note-${proclamatore.id}`).removeAttr('disabled')
+                $(`#Studi-${proc.id}`).removeAttr('disabled')
+                $(`#Note-${proc.id}`).removeAttr('disabled')
             }
             if (rapporto.Inc == 'ir') {
-                $(`#Note-${proclamatore.id}`).removeAttr('disabled')
+                $(`#Note-${proc.id}`).removeAttr('disabled')
             }
-
-            $(`#CP_Rap-${proclamatore.id}`).val(rapporto.id)
-            $(`#Gr-${proclamatore.id}`).val(rapporto.Gr ? rapporto.Gr : "")
-            $(`#Inc-${proclamatore.id}`).val(rapporto.Inc)
-            $(`#Ore-${proclamatore.id}`).val(rapporto.Ore ? rapporto.Ore : "")
-            $(`#Studi-${proclamatore.id}`).val(rapporto.Studi ? rapporto.Studi : "")
-            $(`#Note-${proclamatore.id}`).val(rapporto.Note ? rapporto.Note : "")
-            $(`#Abbuono-${proclamatore.id}`).val(rapporto.Abbuono ? rapporto.Abbuono : "")
+            $(`#CP_Rap-${proc.id}`).val(rapporto.id)
+            $(`#Gr-${proc.id}`).val(rapporto.Gr ? rapporto.Gr : proc.Gr)
+            $(`#Inc-${proc.id}`).val(rapporto.Inc)
+            $(`#Ore-${proc.id}`).val(rapporto.Ore ? rapporto.Ore : "")
+            $(`#Studi-${proc.id}`).val(rapporto.Studi ? rapporto.Studi : "")
+            $(`#Note-${proc.id}`).val(rapporto.Note ? rapporto.Note : "")
+            $(`#Abbuono-${proc.id}`).val(rapporto.Abbuono ? rapporto.Abbuono : "")
         }
-    }
+    })
     $("#FormRapporti div.DivGruppi:not(.d-none):not(:last)").append('<hr class="mt-1">')
     $("#ModalRapporti").modal("show");
 }
 
 function htmlRapporto(proclamatore) {
-    mese = $('[name="mese"]').val()
     option_gruppi = ''
-    for (gruppo of gruppi) {
+    for (gruppo of db.gruppi) {
         option_gruppi += `
             <option value="${gruppo.id}">${gruppo.Num}</option>`
     }
@@ -265,7 +177,7 @@ function htmlRapporto(proclamatore) {
             id="CP_Rap-${proclamatore.id}"
             name="CP_Rap"
         >
-        <div class="col-1">
+        <div class="col-auto">
             <div class="form-floating">
                 <select
                     class="form-select"
@@ -280,7 +192,7 @@ function htmlRapporto(proclamatore) {
                 <label for="Gr">Gr</label>                             
             </div>
         </div>
-        <div class="col-2 align-self-center nome">
+        <div class="col align-self-center nome">
             ${proclamatore.Nome}
         </div>
         <div class="col-1">
@@ -312,25 +224,10 @@ function htmlRapporto(proclamatore) {
                     min="0" 
                     maxlength="5"
                     step="0.25" 
-                    onchange="convalida(this)"
+                    oninput="convalida(this)"
                     disabled
                 >
                 <label for="Ore">Ore</label>
-            </div>
-        </div>
-        <div class="col-1">
-            <div class="form-floating">
-                <input
-                    type="number"
-                    class="form-control"
-                    name="Abbuono"
-                    id="Abbuono-${proclamatore.id}" 
-                    min="0" 
-                    maxlength="5"
-                    onchange="convalida(this)"
-                    disabled
-                >
-                <label for="Abbuono">Ore abb.</label>
             </div>
         </div>
         <div class="col-1">
@@ -342,7 +239,7 @@ function htmlRapporto(proclamatore) {
                     id="Studi-${proclamatore.id}" 
                     min="0" 
                     maxlength="5"
-                    onchange="convalida(this)"
+                    oninput="convalida(this)"
                     disabled
                 >
                 <label for="Studi">Studi</label>
@@ -355,10 +252,25 @@ function htmlRapporto(proclamatore) {
                     class="form-control"
                     name="Note"
                     id="Note-${proclamatore.id}"
-                    onchange="convalida(this)"
+                    oninput="convalida(this)"
                     disabled
                 >
                 <label for="Note">Note</label>
+            </div>
+        </div>
+        <div class="col-2">
+            <div class="form-floating">
+                <input
+                    type="number"
+                    class="form-control"
+                    name="Abbuono"
+                    id="Abbuono-${proclamatore.id}" 
+                    min="0" 
+                    maxlength="5"
+                    oninput="convalida(this)"
+                    disabled
+                >
+                <label for="Abbuono">Ore abb.</label>
             </div>
         </div>
     </div>`
@@ -367,15 +279,13 @@ function htmlRapporto(proclamatore) {
 async function salvaRapporti() {
     console.log('Salva rapporti')
     //forse è da togliere?
-    $("[name='CP_Anag']").each(async function (indice, CP_Anag) {
-        CP_Anag = $(CP_Anag).val()
-        if ($('#Ore-' + CP_Anag).val() == ''
-            && ($('#Inc-' + CP_Anag).val() == 'pa'
-                || $('#Inc-' + CP_Anag).val() == 'ps')) {
-            $("#Ore-" + CP_Anag).addClass("is-invalid")
+    $("[modificato='true']").each(function (indice, riga) {
+        var Ore = Number($(riga).find("[name='Ore']").val())
+        var Inc = $(riga).find("[name='Inc']").val()
+        if ((Inc == 'pa' || Inc == 'pr' || Inc == 'ps') && (Ore == '' || Ore <= 0)) {
+            $(riga).find("[name='Ore']").addClass("is-invalid")
         }
     })
-
 
     if ($('#FormRapporti .is-invalid').length > 0) {
         //se ci sono errori, non salvare
@@ -385,68 +295,84 @@ async function salvaRapporti() {
         return
     }
     $("[modificato='true']").each(function (indice, riga) {
-        console.log($(riga).find(".nome").text())
         var CP_Anag = Number($(riga).find("[name='CP_Anag']").val())
-        var CP_Rap = Number($(riga).find("[name='CP_Rap']").val())
+        //var CP_Rap = Number($(riga).find("[name='CP_Rap']").val())
         var Gr = Number($(riga).find("[name='Gr']").val())
         var Inc = $(riga).find("[name='Inc']").val()
         var Ore = Number($(riga).find("[name='Ore']").val())
         var Studi = Number($(riga).find("[name='Studi']").val())
         var Note = $(riga).find("[name='Note']").val()
         var Abbuono = Number($(riga).find("[name='Abbuono']").val())
-        console.log(CP_Rap)
-        if (Inc == "") {
-            if (CP_Rap != "") {
-                console.log('Cancella record')
-                let n = rapporti.findIndex((item) => item.id == CP_Rap)
-                rapporti.splice(n, 1)
-            }
-        } else {
-            if (CP_Rap == "") {
-                console.log('Inserisci')
-                var id = new Date().getTime() + Math.random()
-                // controlla se l'id è già presente
-                /*
-                for (let i = 0; i < rapporti.length; i++) {
-                    if (rapporti[i].id == id) {
-                        setTimeout(() => {
-                            console.log('aspetto')
-                        }, 2);
-                        id = new Date().getTime()
-                    }
-                }
-                */
-                rapporti.unshift({
-                    'CE_Anag': CP_Anag,
-                    'Gr': Gr,
-                    'Mese': $('[name="mese"]').val(),
-                    'Inc': Inc,
-                    "Ore": Ore,
-                    "Studi": Studi,
-                    "Note": Note,
-                    'Abbuono': Abbuono,
-                    'id': id
-                })
-                //console.log(rapporti[0])
-            } else {
-                console.log('Modifica')
-                let n = rapporti.findIndex((item) => item.id == CP_Rap)
-                console.log(n, rapporti[n].CE_Anag)
-                rapporti[n].Gr = Gr
-                rapporti[n].Mese = $('[name="mese"]').val()
-                rapporti[n].Inc = Inc
-                rapporti[n].Ore = Ore
-                rapporti[n].Studi = Studi
-                rapporti[n].Note = Note
-                rapporti[n].Abbuono = Abbuono
-                rapporti[n].prova = 'modifica'
-
-            }
+        var iProc = db.anagrafica.findIndex(a => a.id == CP_Anag)
+        var iRap = db.anagrafica[iProc].rapporti.findIndex(r => r.Mese == mese)
+        if (iRap == -1 && Inc != '') {
+            console.log('Inserisci rapporto')
+            db.anagrafica[iProc].rapporti.push({
+                'Gr': Gr,
+                'Mese': mese,
+                'Inc': Inc,
+                "Ore": Ore,
+                "Studi": Studi,
+                "Note": Note,
+                'Abbuono': Abbuono,
+            })
+        }
+        if (iRap != -1 && Inc != '') {
+            console.log('Modifica')
+            db.anagrafica[iProc].rapporti[iRap].Gr = Gr
+            db.anagrafica[iProc].rapporti[iRap].Inc = Inc
+            db.anagrafica[iProc].rapporti[iRap].Ore = Ore
+            db.anagrafica[iProc].rapporti[iRap].Studi = Studi
+            db.anagrafica[iProc].rapporti[iRap].Note = Note
+            db.anagrafica[iProc].rapporti[iRap].Abbuono = Abbuono
+        }
+        if (iRap != -1 && Inc == '') {
+            console.log('Elimina rapporto')
+            db.anagrafica[iProc].rapporti.splice(iRap, 1)
         }
     })
+    //salva totali
+    tot = {
+        mese: mese,
+        p: { N: 0, Studi: 0 },
+        pa: { N: 0, Ore: 0, Studi: 0 },
+        pr: { N: 0, Ore: 0, Studi: 0 },
+        ps: { N: 0 },
+        ir: { N: 0 }
+    }
+    for (let i = 0; i < db.anagrafica.length; i++) {
+        iRap = db.anagrafica[i].rapporti.findIndex(r => r.Mese == mese)
+        if (iRap != -1) {
+            if (db.anagrafica[i].rapporti[iRap].Inc == 'p') {
+                tot.p.N++
+                tot.p.Studi += db.anagrafica[i].rapporti[iRap].Studi ? db.anagrafica[i].rapporti[iRap].Studi : 0
+            }
+            if (db.anagrafica[i].rapporti[iRap].Inc == 'pa') {
+                tot.pa.N++
+                tot.pa.Ore += db.anagrafica[i].rapporti[iRap].Ore ? db.anagrafica[i].rapporti[iRap].Ore : 0
+                tot.pa.Studi += db.anagrafica[i].rapporti[iRap].Studi ? db.anagrafica[i].rapporti[iRap].Studi : 0
+            }
+            if (db.anagrafica[i].rapporti[iRap].Inc == 'pr') {
+                tot.pr.N++
+                tot.pr.Ore += db.anagrafica[i].rapporti[iRap].Ore ? db.anagrafica[i].rapporti[iRap].Ore : 0
+                tot.pr.Studi += db.anagrafica[i].rapporti[iRap].Studi ? db.anagrafica[i].rapporti[iRap].Studi : 0
+            }
+            if (db.anagrafica[i].rapporti[iRap].Inc == 'ps') {
+                tot.ps.N++
+            }
+            if (db.anagrafica[i].rapporti[iRap].Inc == 'ir') {
+                tot.ir.N++
+            }
+        }
+    }
+    iTot = db.totali.findIndex(t => t.mese == mese)
+    if (iTot == -1) {
+        db.totali.push(tot)
+    } else {
+        db.totali[iTot] = tot
+    }
     try {
-        console.log(rapporti)
-        result = await window.electronAPI.writeFile('rapporti', rapporti)
+        result = await window.electronAPI.writeFile('db', db)
     } catch (e) {
         console.log(e)
         loadPage()
@@ -459,102 +385,76 @@ async function salvaRapporti() {
     loadPage()
 }
 
-async function fpdfRapporti() {
-    result = await window.electronAPI.fpdfRapporti($('#mese').val())
-    if (result.succ)
-        toast(new Date().getTime(), "verde", result.msg)
-    else
-        toast(new Date().getTime(), "rosso", result.msg)
-}
-
 async function convalida(dato) {
-    input = dato.id.split('-')[0]
-    CP_Anag = dato.id.split('-')[1]
-    mese = $('[name="mese"]').val()
-    $("#Ore-" + CP_Anag).removeClass("is-invalid")
+    let input = dato.name
+    let CP_Anag = $(dato).parents('.row').find("[name='CP_Anag']").val()
+    let proc = db.anagrafica.find(item => item.id == Number(CP_Anag))
+    $(dato).parents('.row').attr('modificato', true)
+    $(dato).parents('.row').find("[name='Ore']").removeClass("is-invalid")
     if (input == "Inc") {
-        if ($("#Inc-" + CP_Anag).val() == "ir") {
-            $("#Ore-" + CP_Anag).attr("disabled", true)
-            $("#Studi-" + CP_Anag).attr("disabled", true)
-            $("#Note-" + CP_Anag).removeAttr('disabled')
-            irr = await irregolare(CP_Anag)
-            $("#Note-" + CP_Anag).val(`Irregolare ${irr}° mese`)
-            $("#Abbuono-" + CP_Anag).attr("disabled", true)
+        if ($(dato).val() == "ir") {
+            $(dato).parents('.row').find("[name='Ore']").val('').attr("disabled", true)
+            $(dato).parents('.row').find("[name='Studi']").val('').attr("disabled", true)
+            $(dato).parents('.row').find("[name='Note']").removeAttr('disabled')
+            let irr = irregolare(proc)
+            $(dato).parents('.row').find("[name='Note']").val(`Irregolare ${irr}° mese`)
+            $(dato).parents('.row').find("[name='Abbuono']").val('').attr("disabled", true)
         }
-        if ($("#Inc-" + CP_Anag).val() == "p") {
-            $("#Ore-" + CP_Anag).attr("disabled", true)
-            $("#Studi-" + CP_Anag).removeAttr('disabled')
-            $("#Note-" + CP_Anag).removeAttr('disabled')
-            $("#Abbuono-" + CP_Anag).attr("disabled", true)
+        if ($(dato).val() == "p") {
+            $(dato).parents('.row').find("[name='Ore']").val('').attr("disabled", true)
+            $(dato).parents('.row').find("[name='Studi']").removeAttr('disabled')
+            $(dato).parents('.row').find("[name='Note']").removeAttr('disabled')
+            $(dato).parents('.row').find("[name='Abbuono']").val('').attr("disabled", true)
         }
-        if ($("#Inc-" + CP_Anag).val() == "pa") {
-            $("#Ore-" + CP_Anag).removeAttr('disabled')
-            $("#Studi-" + CP_Anag).removeAttr('disabled')
-            $("#Note-" + CP_Anag).removeAttr('disabled')
-            $("#Abbuono-" + CP_Anag).attr("disabled", true)
+        if ($(dato).val() == "pa") {
+            $(dato).parents('.row').find("[name='Ore']").removeAttr('disabled')
+            $(dato).parents('.row').find("[name='Studi']").removeAttr('disabled')
+            $(dato).parents('.row').find("[name='Note']").removeAttr('disabled')
+            $(dato).parents('.row').find("[name='Abbuono']").val('').attr("disabled", true)
         }
-        if ($("#Inc-" + CP_Anag).val() == "pr" || $("#Inc-" + CP_Anag).val() == "ps") {
-            $("#Ore-" + CP_Anag).removeAttr('disabled')
-            $("#Studi-" + CP_Anag).removeAttr('disabled')
-            $("#Note-" + CP_Anag).removeAttr('disabled')
-            $("#Abbuono-" + CP_Anag).removeAttr('disabled')
+        if ($(dato).val() == "pr" || $("#Inc-" + CP_Anag).val() == "ps") {
+            $(dato).parents('.row').find("[name='Ore']").removeAttr('disabled')
+            $(dato).parents('.row').find("[name='Studi']").removeAttr('disabled')
+            $(dato).parents('.row').find("[name='Note']").removeAttr('disabled')
+            $(dato).parents('.row').find("[name='Abbuono']").removeAttr('disabled')
         }
-        if ($("#Inc-" + CP_Anag).val() == "") {
-            $("#Ore-" + CP_Anag).attr("disabled", true)
-            $("#Studi-" + CP_Anag).attr("disabled", true)
-            $("#Note-" + CP_Anag).attr("disabled", true)
-            $("#Abbuono-" + CP_Anag).attr("disabled", true)
-            $("#Pubb-" + CP_Anag).val('')
-            $("#Video-" + CP_Anag).val('')
-            $("#Ore-" + CP_Anag).val('')
-            $("#VU-" + CP_Anag).val('')
-            $("#Studi-" + CP_Anag).val('')
-            $("#Note-" + CP_Anag).val('')
-            $("#Abbuono-" + CP_Anag).val('')
+        if ($(dato).val() == "") {
+            $(dato).parents('.row').find("[name='Ore']").val('').attr("disabled", true).val('')
+            $(dato).parents('.row').find("[name='Studi']").val('').attr("disabled", true).val('')
+            $(dato).parents('.row').find("[name='Note']").val('').attr("disabled", true).val('')
+            $(dato).parents('.row').find("[name='Abbuono']").val('').attr("disabled", true).val('')
         }
     }
-    //autofill proclamatori PR e PS
     if (input == "Ore") {
-        if ($("#Inc-" + CP_Anag).val() == '') {
-            proc = proclamatori.find(item => item.id == Number(CP_Anag));
+        //autofill proclamatori PR e PS
+        if ($(dato).parents('.row').find("[name='Inc']").val() == '') {
             if (proc.PR_PS == "PR") {
-                $("#Inc-" + CP_Anag).val("pr")
+                $(dato).parents('.row').find("[name='Inc']").val("pr")
             }
             if (proc.PR_PS == "PS") {
-                $("#Inc-" + CP_Anag).val("ps")
+                $(dato).parents('.row').find("[name='Inc']").val("ps")
             }
         }
-    }
-    //convalida
-    if (input == "Ore") {
-        if (Number($("#Ore-" + CP_Anag).val()) > 0
-            && ($("#Inc-" + CP_Anag).val() == 'pa'
-                || $("#Inc-" + CP_Anag).val() == 'pr'
-                || $("#Inc-" + CP_Anag).val() == 'ps')) {
-            $("#Ore-" + CP_Anag).removeClass("is-invalid")
+        //convalida
+        if (Number($(dato).val()) > 0) {
+            $(dato).removeClass("is-invalid")
         }
-        if (Number($("#Ore-" + CP_Anag).val()) <= 0
-            && ($("#Inc-" + CP_Anag).val() == 'pa'
-                || $("#Inc-" + CP_Anag).val() == 'pr'
-                || $("#Inc-" + CP_Anag).val() == 'ps')) {
-            $("#Ore-" + CP_Anag).addClass("is-invalid")
+        if (Number($(dato).val()) <= 0) {
+            $(dato).addClass("is-invalid")
         }
     }
-    $(dato).parents('.row').attr('modificato', true)
 }
 
-async function irregolare(id) {
+function irregolare(proc) {
+    let m = new Date($('[name="mese"]').val())
     let x = 1
-    let rapporto
     let irr = true
-    let mese = new Date($('[name="mese"]').val())
-
+    let rapporto
     while (irr) {
-        mese.setMonth(mese.getMonth() - 1)
-        rapporto = rapporti.find(item => (
-            (item.CE_Anag == id) &&
-            (item.Mese == `${mese.toLocaleString('it-IT', { year: 'numeric' })}-${mese.toLocaleString('it-IT', { month: '2-digit' })}`)
-        ))
+        m.setMonth(m.getMonth() - 1)
+        rapporto = proc.rapporti.find(item =>
+            (item.Mese == `${m.toLocaleString('it-IT', { year: 'numeric' })}-${m.toLocaleString('it-IT', { month: '2-digit' })}`)
+        )
         if (rapporto == undefined) {
             irr = false
         } else {
@@ -568,16 +468,17 @@ async function irregolare(id) {
     return x
 }
 
-function modalAvvisoRapporto(id_rap, nome) {
-    modalAvviso(`Sei sicuro di voler eliminare il rapporto di ${nome}?`, `elimRapporto(${id_rap})`)
+function modalAvvisoRapporto(id, nome) {
+    modalAvviso(`Sei sicuro di voler eliminare il rapporto di ${nome}?`, `elimRapporto(${id})`)
 }
 
-async function elimRapporto(id_rap) {
+async function elimRapporto(id) {
     $("#ModalAvviso").modal("hide")
     try {
-        let n = rapporti.findIndex((item) => item.id == Number(id_rap))
-        rapporti.splice(n, 1)
-        result = await window.electronAPI.writeFile('rapporti', rapporti)
+        let iAnag = db.anagrafica.findIndex(a => a.id == Number(id))
+        let iRap = db.anagrafica[iAnag].rapporti.findIndex(r => r.Mese == $('[name="mese"]').val())
+        db.anagrafica[iAnag].rapporti.splice(iRap, 1)
+        result = await window.electronAPI.writeFile('db', db)
     } catch (e) {
         loadPage()
         toast(new Date().getTime(), "rosso", e, 10000)
@@ -585,4 +486,12 @@ async function elimRapporto(id_rap) {
     }
     toast(new Date().getTime(), "verde", `Rapporto eliminato`)
     loadPage()
+}
+
+async function fpdfRapporti() {
+    result = await window.electronAPI.fpdfRapporti(mese)
+    if (result.succ)
+        toast(new Date().getTime(), "verde", result.msg)
+    else
+        toast(new Date().getTime(), "rosso", result.msg)
 }

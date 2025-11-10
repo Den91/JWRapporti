@@ -1,17 +1,14 @@
+var db
 var keysI = ['i1', 'i2', 'i3', 'i4', 'i5']
 var keysF = ['f1', 'f2', 'f3', 'f4', 'f5',]
 var anno
 var anni
 
-$(window).resize(function () {
-    marginBody()
-})
-
 $(document).ready(async function () {
     navbar("S-88")
 
-    presenti = await window.electronAPI.readFile('presenti')
-    mesi = [...new Set(presenti.map(item => item.Mese))]
+    db = await window.electronAPI.readFile('db')
+    mesi = [...new Set(db.presenti.map(item => item.Mese))]
     mesi.sort()
     mesi.forEach(function (o, i) {
         m = Number(o.slice(5, 7))
@@ -49,7 +46,7 @@ async function visualS88() {
                 year: 'numeric',
                 month: 'long'
             }))
-            presenti_mese = presenti.filter(item => item.Mese == mesi[x])
+            presenti_mese = db.presenti.filter(item => item.Mese == mesi[x])
             if (presenti_mese.length != 0) {
                 totI = cI = 0
                 totF = cF = 0

@@ -10,6 +10,7 @@ const Chart = require('chart.js')
 let updateWindow, mainWindow
 
 const tabelle = ['anagrafica', 'gruppi', 'rapporti', 'presenti', 'sorvegliante']
+let db
 var pack = null
 try {
     pack = require('./package.json')
@@ -31,8 +32,9 @@ if (platform === 'win32') {
 }
 
 app.whenReady().then(() => {
-    creaTabelle()
-    ottimizzaTabelle()
+    loadDB()
+    //creaTabelle()
+    //ottimizzaTabelle()
     ipcMain.handle('login', login)
     ipcMain.handle('readFile', readFile)
     ipcMain.handle('writeFile', writeFile)
@@ -64,7 +66,7 @@ app.whenReady().then(() => {
     } else {
         mainWindow.loadFile('./home/index.html')
     }
-    controllaRapportiDoppi()
+    //controllaRapportiDoppi()
 })
 
 autoUpdater.on('checking-for-update', () => {
@@ -121,14 +123,9 @@ autoUpdater.on('download-progress', (progress) => {
 })
 autoUpdater.on('update-downloaded', (info) => {
     //log.info('Update downloaded');
-    updateWindow.webContents.send('update',
-        {
-            state: 'downloaded',
-        }
-    )
+    updateWindow.webContents.send('update', { state: 'downloaded', })
     updateWindow.closable = true;
 })
-
 function updateMacos() {
     fetch("https://api.github.com/repos/Den91/JWRapporti/tags")
         .then(res => res.json())
@@ -153,7 +150,7 @@ function updateMacos() {
                     updateWindow.webContents.send('update',
                         {
                             state: 'mac-update',
-                            link: `https://github.com/Den91/JWRapporti/releases/latest/download/jwrapporti-${updateVersion}.pkg`,
+                            link: `https://github.com/Den91/JWRapporti/releases/latest/download/jwrapporti-${updateVersion}.dmg`,
                         }
                     )
                     updateWindow.show()
@@ -161,6 +158,19 @@ function updateMacos() {
             }
         })
         .catch(err => { throw err })
+}
+function closeModalWindow() {
+    updateWindow.close()
+}
+function openBrowserUpdate(event, url) {
+    shell.openExternal(url)
+}
+
+function login(event, username, password) {
+    if (username.toUpperCase() == "SEGRETARIO" && password == "Rapporti1914")
+        return true
+    else
+        return false
 }
 
 async function controllaRapportiDoppi() {
@@ -197,21 +207,6 @@ async function controllaRapportiDoppi() {
                 type: 'warning',
             })
     }
-}
-
-function closeModalWindow() {
-    updateWindow.close()
-}
-
-function openBrowserUpdate(event, url) {
-    shell.openExternal(url)
-}
-
-function login(event, username, password) {
-    if (username.toUpperCase() == "SEGRETARIO" && password == "Rapporti1914")
-        return true
-    else
-        return false
 }
 
 function creaTabelle() {
@@ -257,6 +252,231 @@ async function ottimizzaTabelle() {
     }
 }
 
+async function loadDB() {
+    let exists = fs.existsSync(path.join(userData, 'db.json'))
+    if (exists) {
+        db = await readFile(null, 'db')
+    } else {
+        db = new Object()
+        db.version = 1
+        db.gruppi = []
+        db.sorvegliante = []
+        db.presenti = []
+        db.anagrafica = []
+        if (fs.existsSync(path.join(userData, 'gruppi.json'))) {
+            db.gruppi = await readFile(null, 'gruppi')
+            fs.unlink(path.join(userData, 'gruppi.json'), function (err) {
+                if (err) return console.log(err);
+            })
+        }
+        if (fs.existsSync(path.join(userData, 'sorvegliante.json'))) {
+            db.sorvegliante = await readFile(null, 'sorvegliante')
+            fs.unlink(path.join(userData, 'sorvegliante.json'), function (err) {
+                if (err) return console.log(err);
+            })
+        }
+        if (fs.existsSync(path.join(userData, 'presenti.json'))) {
+            db.presenti = await readFile(null, 'presenti')
+            fs.unlink(path.join(userData, 'presenti.json'), function (err) {
+                if (err) return console.log(err);
+            })
+        }
+        if (fs.existsSync(path.join(userData, 'anagrafica.json'))) {
+            db.anagrafica = await readFile(null, 'anagrafica')
+            for (let i = 0; i < db.anagrafica.length; i++) {
+                if (db.anagrafica[i].Elimina == '0') {
+                    db.anagrafica[i].Eliminato = false
+                    delete db.anagrafica[i].Elimina
+                }
+                if (db.anagrafica[i].Elimina == '1') {
+                    db.anagrafica[i].Eliminato = true
+                    delete db.anagrafica[i].Elimina
+                }
+                if (db.anagrafica[i].Attivo == '0') {
+                    db.anagrafica[i].Attivo = false
+                }
+                if (db.anagrafica[i].Attivo == '1') {
+                    db.anagrafica[i].Attivo = true
+                }
+                delete db.anagrafica[i].CP_Anag
+                db.anagrafica[i].rapporti = []
+            }
+            fs.unlink(path.join(userData, 'anagrafica.json'), function (err) {
+                if (err) return console.log(err);
+            })
+        }
+        if (fs.existsSync(path.join(userData, 'rapporti.json'))) {
+            r = await readFile(null, 'rapporti')
+            for (let i = 0; i < r.length; i++) {
+                let obj = db.anagrafica.find((anagrafica, indice) => {
+                    if (anagrafica.id == r[i].CE_Anag) {
+                        db.anagrafica[indice].rapporti.push(r[i])
+                        return true; // stop searching
+                    }
+                });
+            }
+            db.anagrafica.forEach(p => {
+                p.rapporti.sort((a, b) => {
+                    return a.Mese < b.Mese ? -1 : 1;
+                })
+            })
+            fs.unlink(path.join(userData, 'rapporti.json'), function (err) {
+                if (err) return console.log(err);
+            })
+        }
+        try {
+            result = await writeFile(null, 'db', db)
+        } catch (e) {
+            console.log(e)
+        }
+    }
+}
+
+async function loadBackupOld() {
+    const { canceled, filePaths } = await dialog.showOpenDialog({
+        filters: [
+            { name: 'Backup', extensions: ['json'] },
+        ]
+    })
+    if (canceled) {
+        return
+    } else {
+        for (tabella of tabelle) {
+            fs.copyFile(path.join(userData, tabella + '.json'), path.join(userData, tabella + '.tmp'), (err) => {
+                if (err) throw err;
+            })
+        }
+        let dati = JSON.parse(fs.readFileSync(filePaths[0]))
+        try {
+            for (tabella of tabelle) {
+                //console.log(dati[tabella])
+                fs.writeFileSync(path.join(userData, tabella + '.json'),
+                    JSON.stringify({ [tabella]: dati[tabella] }, null, 2), (err) => {
+                        throw err;
+                    })
+            }
+            for (tabella of tabelle) {
+                fs.unlink(path.join(userData, tabella + '.tmp'), function (err) {
+                    if (err) return console.log(err);
+                })
+            }
+            ottimizzaTabelle()
+            return { succ: true, msg: 'Dati importati con successo' }
+        } catch (err) {
+            for (tabella of tabelle) {
+                fs.unlink(path.join(userData, tabella + '.json'), function (err) {
+                    if (err) return console.log(err);
+                    console.log('file deleted successfully');
+                })
+                fs.rename(path.join(userData, tabella + '.tmp'), path.join(userData, tabella + '.json'), function (err) {
+                    if (err) console.log('ERROR: ' + err);
+                });
+            }
+            return { succ: false, msg: err }
+        }
+    }
+}
+
+async function saveBackupOld() {
+    const { canceled, filePaths } = await dialog.showOpenDialog({ properties: ['openDirectory'] })
+    if (canceled) {
+        return
+    } else {
+        let backup = {}
+        for (tabella of tabelle) {
+            backup[tabella] = JSON.parse(fs.readFileSync(path.join(userData, tabella + '.json')))[tabella]
+        }
+        try {
+            d = new Date()
+            nomeFile = 'backup_' +
+                d.getFullYear() + '-' +
+                ('0' + (d.getMonth() + 1)).slice(-2) + '-' +
+                ('0' + d.getDate()).slice(-2) + '-' +
+                d.getHours() + '-' +
+                d.getMinutes() + '.json'
+            fs.writeFileSync(path.join(filePaths[0], nomeFile),
+                JSON.stringify(backup, null, 2), (err) => {
+                    log.info(err)
+                    throw err;
+                })
+            return { succ: true, msg: 'Backup effettuato' }
+        } catch (err) {
+            console.log(err)
+            return { succ: false, msg: err }
+        }
+    }
+}
+
+async function loadBackup() {
+    const { canceled, filePaths } = await dialog.showOpenDialog({
+        filters: [
+            { name: 'Backup', extensions: ['json'] },
+        ]
+    })
+    if (canceled) {
+        return
+    } else {
+        let backup = JSON.parse(fs.readFileSync(filePaths[0]))
+        if (!backup.version) {
+            console.log("Versione 0")
+            db = new Object()
+            db.version = 1
+            db.gruppi = backup.gruppi
+            db.sorvegliante = backup.sorvegliante
+            db.presenti = backup.presenti
+            db.anagrafica = backup.anagrafica
+            db.anagrafica.forEach(p => {
+                p.rapporti = []
+            })
+            for (let i = 0; i < backup.rapporti.length; i++) {
+                let obj = db.anagrafica.find((anagrafica, indice) => {
+                    if (anagrafica.id == backup.rapporti[i].CE_Anag) {
+                        db.anagrafica[indice].rapporti.push(backup.rapporti[i])
+                        return true; // stop searching
+                    }
+                })
+            }
+        }
+        if (backup.version == 1) {
+            console.log("Versione 1")
+            db = backup
+        }
+        try {
+            result = await writeFile(null, 'db', db)
+            return { succ: true, msg: 'Dati importati con successo' }
+        } catch (err) {
+            return { succ: false, msg: err }
+        }
+    }
+}
+
+async function saveBackup() {
+    const { canceled, filePaths } = await dialog.showOpenDialog({ properties: ['openDirectory'] })
+    if (canceled) {
+        return
+    } else {
+        db = await readFile(null, 'db')
+        try {
+            d = new Date()
+            nomeFile = 'backup_' +
+                d.getFullYear() + '-' +
+                ('0' + (d.getMonth() + 1)).slice(-2) + '-' +
+                ('0' + d.getDate()).slice(-2) + '-' +
+                d.getHours() + '-' +
+                d.getMinutes() + '.json'
+            fs.writeFileSync(path.join(filePaths[0], nomeFile),
+                JSON.stringify(db, null, 2), (err) => {
+                    log.info(err)
+                    throw err;
+                })
+            return { succ: true, msg: 'Backup effettuato' }
+        } catch (err) {
+            console.log(err)
+            return { succ: false, msg: err }
+        }
+    }
+}
+
 async function readFile(event, tableName) {
     let fname = path.join(userData, tableName + '.json')
     let exists = fs.existsSync(fname)
@@ -269,28 +489,45 @@ async function readFile(event, tableName) {
             return []
         }
     } else {
-        throw 'Table file does not exist!'
+        throw [1, 'Table file does not exist!']
     }
 }
 
 async function writeFile(event, tableName, tableObject) {
     let fname = path.join(userData, tableName + '.json')
-    let exists = fs.existsSync(fname)
-
-    if (exists) {
-        try {
-            let obj = new Object();
-            obj[tableName] = tableObject
-            fs.writeFileSync(fname, JSON.stringify(obj, null, 2), (err) => {
-                throw err
-            })
-            return "File write"
-        } catch (e) {
-            throw e
-        }
-    } else {
-        throw 'Table file does not exist!'
+    try {
+        let obj = new Object();
+        obj[tableName] = tableObject
+        fs.writeFileSync(fname, JSON.stringify(obj, null, 2), (err) => {
+            throw err
+        })
+        return "File write"
+    } catch (e) {
+        throw e
     }
+}
+
+function unescapeHtml(safe) {
+    return safe
+        .replace(/&amp;/g, "&")
+        .replace(/&lt;/g, "<")
+        .replace(/&gt;/g, ">")
+        .replace(/&quot;/g, '"')
+        .replace(/&#039;/g, "'");
+}
+
+function mesiAnnoTeocratico(anno) {
+    let mesi = []
+    let mese = new Date((Number(anno) - 1) + "-09")
+    for (let x = 0; x < 12; x++) {
+        mesi.push(`${mese.toLocaleString('it-IT', {
+            year: 'numeric'
+        })}-${mese.toLocaleString('it-IT', {
+            month: '2-digit'
+        })}`)
+        mese.setMonth(mese.getMonth() + 1);
+    }
+    return mesi
 }
 
 async function fpdfAnagrafica() {
@@ -308,28 +545,24 @@ async function fpdfAnagrafica() {
         border = 1;
         row = 4.2;
 
-        co = await readFile(null, 'sorvegliante')
-        co = co[0]
-
-        gruppi = await readFile(null, 'gruppi')
-        gruppi.sort(function (a, b) {
+        db = await readFile(null, 'db')
+        db.gruppi.sort(function (a, b) {
             return a.Num - b.Num
         })
 
-        for (gruppo of gruppi) {
+        for (gruppo of db.gruppi) {
             pdf.AddPage();
             pdf.SetFont('Arial', '', 12);
             pdf.Cell(204, row + 1, `Gruppo N.${gruppo["Num"]} ${gruppo["Sorv_Gr"]}`, border, 1, 'C');
             pdf.SetFont('Arial', '', 10);
-            if (co != null) {
-                pdf.Cell(68, row, "Sorvegliante: " + unescapeHtml(co.Nome_CO), border, 0, 'C');
-                pdf.Cell(68, row, "Cellulare: " + co.Cel_CO, border, 0, 'C');
-                pdf.Cell(68, row, "Email: " + co.Email_CO, border, 0, 'C');
+            if (db.sorvegliante[0] != null) {
+                pdf.Cell(68, row, "Sorvegliante: " + unescapeHtml(db.sorvegliante[0].Nome_CO), border, 0, 'C');
+                pdf.Cell(68, row, "Cellulare: " + db.sorvegliante[0].Cel_CO, border, 0, 'C');
+                pdf.Cell(68, row, "Email: " + db.sorvegliante[0].Email_CO, border, 0, 'C');
                 pdf.Ln(row + 1);
             }
             c = 1;
-            proclamatori = await readFile(null, 'anagrafica')
-            proclamatori = proclamatori.filter(item => ((item.Gr == gruppo.id) && (item.Elimina == '0')))
+            proclamatori = db.anagrafica.filter(item => ((item.Gr == gruppo.id) && (!item.Eliminato)))
 
             proclamatori.sort(function (a, b) {
                 if (a.Nome < b.Nome)
@@ -399,14 +632,6 @@ async function fpdfAnagrafica() {
         }
         try {
             pdf.Output('F', path.join(filePaths[0], 'anagrafica.pdf'))
-            //shell.showItemInFolder(path.join(filePaths[0], 'anagrafica.pdf'));
-            /*
-            const PDFWindow = new PDFWindowModule({
-                width: 1024,
-                height: 768
-            })
-            PDFWindow.loadURL(path.join(filePaths[0], 'anagrafica.pdf'))
-            */
             return { succ: true, msg: "File creato" }
         } catch (e) {
             return { succ: false, msg: 'Errore: ' + e }
@@ -419,23 +644,8 @@ async function fpdfRapporti(event, mese) {
     if (canceled) {
         return
     } else {
-        proclamatori = await readFile(null, 'anagrafica')
-        rapporti = await readFile(null, 'rapporti')
-        rapporti = rapporti.filter(item => item.Mese == mese)
-
-        rapporti.forEach(function (rapporto, indice) {
-            let proc = proclamatori.find(item => item.id === rapporto.CE_Anag)
-            rapporto.Nome = proc.Nome
-        })
-        rapporti.sort(function (a, b) {
-            if (a.Nome < b.Nome)
-                return -1
-            if (a.Nome > b.Nome)
-                return 1
-            return 0
-        })
-
-        var keys = ['Pubb', 'Video', 'Ore', 'VU', 'Studi']
+        db = await readFile(null, 'db')
+        var keys = ['Ore', 'Studi']
         const pdf = new FPDF('P', 'mm', 'A4');
         pdf.SetTextColor(0, 0, 0);
         pdf.SetAutoPageBreak(1, 3);
@@ -453,70 +663,61 @@ async function fpdfRapporti(event, mese) {
         pdf.Ln(row + 2);
         pdf.SetFont('Arial', 'B', 10);
         c0 = 7
-        c1 = 48;
+        c1 = 48 + 16;
         c2 = 16;
-        c3 = 16;
-        c4 = 16;
         c5 = 16;
-        c6 = 16;
         c7 = 16;
-        c8 = 53;
+        c8 = 53 + 16 + 16;
         pdf.Cell(c0, row, '#', border, 0, 'C');
         pdf.Cell(c1, row, 'Nome proclamatore', border, 0, 'L');
         pdf.Cell(c2, row, 'Inc', border, 0, 'C');
-        pdf.Cell(c3, row, 'Pubb', border, 0, 'C');
-        pdf.Cell(c4, row, 'Video', border, 0, 'C');
         pdf.Cell(c5, row, 'Ore', border, 0, 'C');
-        pdf.Cell(c6, row, 'VU', border, 0, 'C');
         pdf.Cell(c7, row, 'Studi', border, 0, 'C');
         pdf.Cell(c8, row, 'Note', border, 0, 'L');
         pdf.Ln(row);
 
         pdf.SetFont('Arial', '', 10);
         x = 1;
-        totP = { N: 0, Pubb: 0, Video: 0, Ore: 0, VU: 0, Studi: 0 }
-        totPA = { N: 0, Pubb: 0, Video: 0, Ore: 0, VU: 0, Studi: 0 }
-        totPR = { N: 0, Pubb: 0, Video: 0, Ore: 0, VU: 0, Studi: 0 }
+        totP = { N: 0, Ore: 0, Studi: 0 }
+        totPA = { N: 0, Ore: 0, Studi: 0 }
+        totPR = { N: 0, Ore: 0, Studi: 0 }
         ir = 0
 
-        for (rapporto of rapporti) {
-            if (x % 2 != 0) {
-                pdf.SetFillColor(200, 200, 200);
-            } else {
-                pdf.SetFillColor(255, 255, 255);
-            }
-            proc = proclamatori.find(item => item.id === rapporto.CE_Anag)
-            pdf.Cell(c0, row, x, border, 0, 'C', true);
-            pdf.Cell(c1, row, unescapeHtml(proc['Nome']), border, 0, 'L', true);
-            pdf.Cell(c2, row, rapporto['Inc'], border, 0, 'C', true);
-            pdf.Cell(c3, row, rapporto['Pubb'] ? rapporto['Pubb'] : '', border, 0, 'C', true);
-            pdf.Cell(c4, row, rapporto['Video'] ? rapporto['Video'] : '', border, 0, 'C', true);
-            pdf.Cell(c5, row, rapporto['Ore'] ? rapporto['Ore'] : '', border, 0, 'C', true);
-            pdf.Cell(c6, row, rapporto['VU'] ? rapporto['VU'] : '', border, 0, 'C', true);
-            pdf.Cell(c7, row, rapporto['Studi'] ? rapporto['Studi'] : '', border, 0, 'C', true);
-            pdf.Cell(c8, row, rapporto['Note'] ? unescapeHtml(rapporto['Note']) : '', border, 0, 'L', true);
-            pdf.Ln(row);
-            x++;
-            if (rapporto['Inc'] == 'p') {
-                totP['N']++
-                for (key of keys) {
-                    totP[key] += Number(rapporto[key])
+        for (proc of db.anagrafica) {
+            rapporto = proc.rapporti.find(item => item.Mese == mese)
+            if (rapporto) {
+                if (x % 2 != 0) {
+                    pdf.SetFillColor(200, 200, 200);
+                } else {
+                    pdf.SetFillColor(255, 255, 255);
                 }
-            }
-            if (rapporto['Inc'] == 'pa') {
-                totPA['N']++
-                for (key of keys) {
-                    totPA[key] += Number(rapporto[key])
+                pdf.Cell(c0, row, x, border, 0, 'C', true);
+                pdf.Cell(c1, row, unescapeHtml(proc['Nome']), border, 0, 'L', true);
+                pdf.Cell(c2, row, rapporto['Inc'], border, 0, 'C', true);
+                pdf.Cell(c5, row, rapporto['Ore'] ? rapporto['Ore'] : '', border, 0, 'C', true);
+                pdf.Cell(c7, row, rapporto['Studi'] ? rapporto['Studi'] : '', border, 0, 'C', true);
+                pdf.Cell(c8, row, rapporto['Note'] ? unescapeHtml(rapporto['Note']) : '', border, 0, 'L', true);
+                pdf.Ln(row);
+                x++;
+                if (rapporto['Inc'] == 'p') {
+                    totP['N']++
+                    totP['Studi'] += Number(rapporto['Studi'])
                 }
-            }
-            if (rapporto['Inc'] == 'pr') {
-                totPR['N']++
-                for (key of keys) {
-                    totPR[key] += Number(rapporto[key])
+                if (rapporto['Inc'] == 'pa') {
+                    totPA['N']++
+                    for (key of keys) {
+                        totPA[key] += Number(rapporto[key])
+                    }
                 }
-            }
-            if (rapporto['Inc'] == 'ir') {
-                ir++
+                if (rapporto['Inc'] == 'pr') {
+                    totPR['N']++
+                    for (key of keys) {
+                        totPR[key] += Number(rapporto[key])
+                    }
+                }
+                if (rapporto['Inc'] == 'ir') {
+                    ir++
+                }
             }
         }
 
@@ -527,19 +728,15 @@ async function fpdfRapporti(event, mese) {
         pdf.Cell(20, row, "", 0, 0, 'L', true);
         pdf.Cell(c1, row, "Incarico", border, 0, 'L', true);
         pdf.Cell(c2, row, "N.", border, 0, 'C', true);
-        pdf.Cell(c3, row, "Pubb.", border, 0, 'C', true);
-        pdf.Cell(c4, row, "Video", border, 0, 'C', true);
         pdf.Cell(c5, row, "Ore", border, 0, 'C', true);
-        pdf.Cell(c6, row, "Visite", border, 0, 'C', true);
         pdf.Cell(c7, row, "Studi", border, 0, 'C', true);
         pdf.Ln(row);
 
         pdf.Cell(20, row, "", 0, 0, 'L', true);
         pdf.Cell(c1, row, 'Proclamatori', border, 0, 'L', true);
         pdf.Cell(c2, row, totP['N'], border, 0, 'C', true);
-        for (key of keys) {
-            pdf.Cell(c2, row, totP[key], border, 0, 'C', true);
-        }
+        pdf.Cell(c2, row, '', border, 0, 'C', true);
+        pdf.Cell(c2, row, totP['Studi'], border, 0, 'C', true);
         pdf.Ln(row);
 
         pdf.Cell(20, row, "", 0, 0, 'L', true);
@@ -551,7 +748,7 @@ async function fpdfRapporti(event, mese) {
         pdf.Ln(row);
 
         pdf.Cell(20, row, "", 0, 0, 'L', true);
-        pdf.Cell(c1, row, 'pionieri regolari', border, 0, 'L', true);
+        pdf.Cell(c1, row, 'Pionieri regolari', border, 0, 'L', true);
         pdf.Cell(c2, row, totPR['N'], border, 0, 'C', true);
         for (key of keys) {
             pdf.Cell(c2, row, totPR[key], border, 0, 'C', true);
@@ -573,8 +770,6 @@ async function fpdfRapporti(event, mese) {
         try {
             pdf.Output('F', path.join(filePaths[0],
                 `rapporti ${mese_date.toLocaleString('it-IT', { month: 'long', year: 'numeric' })}.pdf`))
-            shell.showItemInFolder(path.join(filePaths[0],
-                `rapporti ${mese_date.toLocaleString('it-IT', { month: 'long', year: 'numeric' })}.pdf`));
             return { succ: true, msg: "File creato" }
         } catch (e) {
             return { succ: false, msg: 'Errore: ' + e }
@@ -761,7 +956,7 @@ async function cartolinaFPDF(pdf, proc, cartolina, link_pdf, link_first_page = n
             new Date(rapporto.Mese).toLocaleString("it-IT", { year: 'numeric', month: 'long' }), 1, 0, 'L');
         if (rapporto.hasOwnProperty('Inc')) {
             pdf.Cell(c24, 7, rapporto.Inc, 1, 0, 'C')
-            pdf.Cell(c24, 7, rapporto.Studi || '', 1, 0, 'C');
+            pdf.Cell(c24, 7, rapporto.Studi ? rapporto.Studi : '', 1, 0, 'C');
             if (rapporto.Inc == "pa" || rapporto.Inc == "pr" || rapporto.Inc == "ps") {
                 somma += Number(rapporto.Ore)
                 pdf.Cell(c24, 7, rapporto.Ore, 1, 0, 'C');
@@ -799,7 +994,7 @@ async function cartolinaFPDF(pdf, proc, cartolina, link_pdf, link_first_page = n
     pdf.Ln(7)
 }
 
-async function fpdfS21Singola(event, anno, proc) {
+async function fpdfS21Singola(event, anno, id_proc) {
     const { canceled, filePaths } = await dialog.showOpenDialog({ properties: ['openDirectory'] })
     if (canceled) {
         return
@@ -811,58 +1006,113 @@ async function fpdfS21Singola(event, anno, proc) {
         pdf.SetY(3);
         pdf.AddPage();
 
-        rapporti = await readFile(null, 'rapporti')
-        gruppi = await readFile(null, 'gruppi')
-        anagrafica = await readFile(null, 'anagrafica')
-        var mesi = mesiAnnoTeocratico(anno)
-
-        cartolina = []
-        for (let mese of mesi) {
-            rapporto = { 'Mese': mese }
-            if (isNaN(proc.id)) {
-                if (proc.id.length > 2) {
-                    gruppoStraniero = proc.id.split('-')
-                    if (gruppoStraniero[1] == 'ita') {
-                        gruppiStranieri = gruppi.filter(item => item.straniero).map(item => item.id)
-                        rapporti_mese = rapporti.filter(item => (
-                            (item.Mese == mese) &&
-                            (item.Inc == gruppoStraniero[0]) &&
-                            (!gruppiStranieri.includes(item.Gr))
-                        ))
-                    } else {
-                        rapporti_mese = rapporti.filter(item => (
-                            (item.Mese == mese) &&
-                            (item.Inc == gruppoStraniero[0]) &&
-                            (item.Gr == gruppoStraniero[1])
-                        ))
+        db = await readFile(null, 'db')
+        if (isNaN(id_proc)) {
+            proc = { id: id_proc }
+            if (proc.id == "p") {
+                proc.Nome = 'Proclamatori congregazione'
+            }
+            if (proc.id == "pa") {
+                proc.Nome = "Pionieri ausiliari congregazione"
+            }
+            if (proc.id == "pr") {
+                proc.Nome = "Pionieri regolari e speciali congregazione"
+            }
+            if (proc.id == "tt") {
+                proc.Nome = "Totali congregazione"
+            }
+            if (proc.id.length > 2) {
+                gruppoStraniero = id_proc.split('-')
+                if (gruppoStraniero[1] == 'ita') {
+                    if (gruppoStraniero[0] == 'p') {
+                        proc.Nome = 'Proclamatori italiani'
+                    }
+                    if (gruppoStraniero[0] == 'pa') {
+                        proc.Nome = 'Pionieri ausiliari italiani'
+                    }
+                    if (gruppoStraniero[0] == 'pr') {
+                        proc.Nome = 'Pionieri regolari italiani'
                     }
                 } else {
-                    if (proc.id == "tt") {
-                        rapporti_mese = rapporti.filter(item => (item.Mese == mese))
-                    } else {
-                        rapporti_mese = rapporti.filter(item => (
-                            (item.Mese == mese) &&
-                            (item.Inc == proc.id)))
+                    if (gruppoStraniero[0] == 'p') {
+                        proc.Nome = 'Proclamatori gruppo ' +
+                            db.gruppi.find(item => item.id == Number(gruppoStraniero[1])).Sorv_Gr
+                    }
+                    if (gruppoStraniero[0] == 'pa') {
+                        proc.Nome = 'Pionieri ausiliari gruppo ' +
+                            db.gruppi.find(item => item.id == Number(gruppoStraniero[1])).Sorv_Gr
+                    }
+                    if (gruppoStraniero[0] == 'pr') {
+                        proc.Nome = 'Pionieri regolari gruppo ' +
+                            db.gruppi.find(item => item.id == Number(gruppoStraniero[1])).Sorv_Gr
                     }
                 }
-                rapporto.N = rapporti_mese.length
-                if (rapporti_mese.length != 0) {
-                    rapporto.Studi = rapporti_mese.map(item => item.Studi).reduce((p, n) => p + n)
-                    if (proc.id != "p") {
-                        rapporto.Ore = rapporti_mese.map(item => item.Ore).reduce((p, n) => p + n)
+            }
+        } else {
+            proc = db.anagrafica.find(item => item.id == Number(id_proc))
+        }
+
+        cartolina = []
+        var mesi = mesiAnnoTeocratico(anno)
+        for (indice = 0; indice < 12; indice++) {
+            if (isNaN(id_proc)) {
+                rapporto = { 'Mese': mesi[indice] }
+                if (id_proc == 'p' || id_proc == 'pa') {
+                    rap = db.anagrafica.filter(p => p.rapporti.findIndex(r => r.Mese == mesi[indice] && r.Inc == id_proc) != -1)
+                    note = ''
+                }
+                if (id_proc == 'pr') {
+                    rap = db.anagrafica.filter(p => p.rapporti.findIndex(r => r.Mese == mesi[indice] && (r.Inc == id_proc || r.Inc == 'ps')) != -1)
+                    note = ''
+                }
+                if (id_proc == 'tt') {
+                    rap = db.anagrafica.filter(p => p.rapporti.findIndex(r => r.Mese == mesi[indice]) != -1)
+                    let p = db.anagrafica.filter(p => p.rapporti.findIndex(r => r.Mese == mesi[indice] && r.Inc == 'p') != -1).length
+                    let pa = db.anagrafica.filter(p => p.rapporti.findIndex(r => r.Mese == mesi[indice] && r.Inc == 'pa') != -1).length
+                    let pr = db.anagrafica.filter(p => p.rapporti.findIndex(r => r.Mese == mesi[indice] && r.Inc == 'pr') != -1).length
+                    let ps = db.anagrafica.filter(p => p.rapporti.findIndex(r => r.Mese == mesi[indice] && r.Inc == 'ps') != -1).length
+                    let ir = db.anagrafica.filter(p => p.rapporti.findIndex(r => r.Mese == mesi[indice] && r.Inc == 'ir') != -1).length
+                    note = `P:${p} PA:${pa} PR:${pr} PS:${ps} IR:${ir}`
+                }
+                if (id_proc.length > 2) {
+                    gruppoStraniero = id_proc.split('-')
+                    if (gruppoStraniero[1] == 'ita') {
+                        gruppiStranieri = db.gruppi.filter(item => item.straniero).map(item => item.id)
+                        rap = db.anagrafica.filter(
+                            p => p.rapporti.findIndex(
+                                r => r.Mese == mesi[indice] && r.Inc == gruppoStraniero[0] && !gruppiStranieri.includes(r.Gr)) != -1
+                        )
+                    } else {
+                        rap = db.anagrafica.filter(
+                            p => p.rapporti.findIndex(
+                                r => r.Mese == mesi[indice] && r.Inc == gruppoStraniero[0] && r.Gr == gruppoStraniero[1]) != -1
+                        )
                     }
-                    if (proc.id == "tt") {
-                        let p = rapporti_mese.filter(item => item.Inc == 'p')
-                        let pa = rapporti_mese.filter(item => item.Inc == 'pa')
-                        let pr = rapporti_mese.filter(item => item.Inc == 'pr')
-                        let ir = rapporti_mese.filter(item => item.Inc == 'ir')
-                        rapporto.Note = `P:${p.length} PA:${pa.length} PR:${pr.length} IR:${ir.length}`
+                    note = ''
+                }
+                if (rap.length > 0) {
+                    rapporto = {
+                        N: rap.length,
+                        Studi: rap.map(p => {
+                            iRap = p.rapporti.findIndex(r => r.Mese == mesi[indice])
+                            return p.rapporti[iRap].Studi ? p.rapporti[iRap].Studi : 0
+                        }).reduce((p, n) => p + n),
+                        Ore: rap.map(p => {
+                            iRap = p.rapporti.findIndex(r => r.Mese == mesi[indice])
+                            return p.rapporti[iRap].Ore ? p.rapporti[iRap].Ore : 0
+                        }).reduce((p, n) => p + n),
+                        Note: note
+                    }
+                } else {
+                    rapporto = {
+                        N: 0,
+                        Studi: 0,
+                        Ore: 0
                     }
                 }
             } else {
-                rap = rapporti.filter(item => ((item.Mese == mese) && (item.CE_Anag == proc.id)))[0]
-                if (rap != undefined)
-                    rapporto = rap
+                iRap = proc.rapporti.findIndex(item => item.Mese == mesi[indice])
+                rapporto = proc.rapporti[iRap]
             }
             cartolina.push(rapporto)
         }
@@ -871,7 +1121,6 @@ async function fpdfS21Singola(event, anno, proc) {
 
         try {
             pdf.Output('F', path.join(filePaths[0], `S-21 ${proc.Nome} ${anno}.pdf`))
-            shell.showItemInFolder(path.join(filePaths[0], `S-21 ${proc.Nome} ${anno}.pdf`));
             return { succ: true, msg: "File creato" }
         } catch (e) {
             return { succ: false, msg: 'Errore: ' + e }
@@ -890,14 +1139,9 @@ async function fpdfS21Tutte(event, anno) {
         let mm_x = 0;
         let link_pdf = {}
         let link_pdf_tot = {}
-        gruppi = await readFile(null, 'gruppi')
-        gruppi.sort(function (a, b) {
-            return a.Num - b.Num
-        })
+        db = await readFile(null, 'db')
 
-        anagrafica = await readFile(null, 'anagrafica')
-
-        pionieri = anagrafica.filter(item => ((item.PR_PS == 'PR') && (item.Attivo == '1') && (item.Elimina == '0')))
+        pionieri = db.anagrafica.filter(item => ((item.PR_PS == 'PR') && (item.Attivo) && (!item.Eliminato)))
         pionieri.sort(function (a, b) {
             if (a.Nome < b.Nome)
                 return -1
@@ -908,11 +1152,11 @@ async function fpdfS21Tutte(event, anno) {
 
         let proclamatori = []
         let n = 0
-        for (gruppo of gruppi) {
-            proclamatori[n] = anagrafica.filter(item => (
+        for (gruppo of db.gruppi) {
+            proclamatori[n] = db.anagrafica.filter(item => (
                 (item.PR_PS == '') &&
-                (item.Attivo == '1') &&
-                (item.Elimina == '0') &&
+                (item.Attivo) &&
+                (!item.Eliminato) &&
                 (item.Gr == gruppo.id)))
             proclamatori[n].sort(function (a, b) {
                 if (a.Nome < b.Nome)
@@ -924,7 +1168,7 @@ async function fpdfS21Tutte(event, anno) {
             n++
         }
 
-        inattivi = anagrafica.filter(item => ((item.Attivo == '0') && (item.Elimina == '0')))
+        inattivi = db.anagrafica.filter(item => ((!item.Attivo) && (!item.Eliminato)))
         inattivi.sort(function (a, b) {
             if (a.Nome < b.Nome)
                 return -1
@@ -963,7 +1207,7 @@ async function fpdfS21Tutte(event, anno) {
 
         for (proc_filter of proclamatori) {
             pdf.SetFont('Arial', '', 16);
-            gruppo = gruppi.find(item => item.id === proc_filter[0].Gr)
+            gruppo = db.gruppi.find(item => item.id === proc_filter[0].Gr)
             pdf.Cell(mm_colonna * 4, 8, `Proclamatori - Gruppo ${gruppo['Num']} ${gruppo["Sorv_Gr"]}`, 1, 1, 'C');
             pdf.SetFont('Arial', '', 10);
             mm_x = 0;
@@ -994,7 +1238,7 @@ async function fpdfS21Tutte(event, anno) {
         }
         pdf.Ln(8);
 
-        gruppiStranieri = gruppi.filter(item => item.straniero)
+        gruppiStranieri = db.gruppi.filter(item => item.straniero)
         if (gruppiStranieri.length > 0) {
             pdf.SetFont('Arial', '', 16);
             pdf.Cell(mm_colonna * 4, 8, "Parziali", 1, 1, 'C');
@@ -1047,12 +1291,12 @@ async function fpdfS21Tutte(event, anno) {
             cartolina = []
             for (let mese of mesi) {
                 rapporto = { 'Mese': mese }
-                rap = rapporti.filter(item => ((item.Mese == mese) && (item.CE_Anag == riga.id)))[0]
-                if (rap != undefined)
-                    rapporto = rap
+                iRap = riga.rapporti.findIndex(item => item.Mese == mese)
+                if (iRap != -1)
+                    rapporto = riga.rapporti[iRap]
                 cartolina.push(rapporto)
             }
-
+            console.log(cartolina);
             await cartolinaFPDF(pdf, riga, cartolina, link_pdf[riga["id"]], link_first_page);
         }
         for (proc_filter of proclamatori) {
@@ -1062,9 +1306,9 @@ async function fpdfS21Tutte(event, anno) {
                 cartolina = []
                 for (let mese of mesi) {
                     rapporto = { 'Mese': mese }
-                    rap = rapporti.filter(item => ((item.Mese == mese) && (item.CE_Anag == riga.id)))[0]
-                    if (rap != undefined)
-                        rapporto = rap
+                    iRap = riga.rapporti.findIndex(item => item.Mese == mese)
+                    if (iRap != -1)
+                        rapporto = riga.rapporti[iRap]
                     cartolina.push(rapporto)
                 }
                 await cartolinaFPDF(pdf, riga, cartolina, link_pdf[riga["id"]], link_first_page);
@@ -1076,9 +1320,9 @@ async function fpdfS21Tutte(event, anno) {
             cartolina = []
             for (let mese of mesi) {
                 rapporto = { 'Mese': mese }
-                rap = rapporti.filter(item => ((item.Mese == mese) && (item.CE_Anag == riga.id)))[0]
-                if (rap != undefined)
-                    rapporto = rap
+                iRap = riga.rapporti.findIndex(item => item.Mese == mese)
+                if (iRap != -1)
+                    rapporto = riga.rapporti[iRap]
                 cartolina.push(rapporto)
             }
             await cartolinaFPDF(pdf, riga, cartolina, link_pdf[riga["id"]], link_first_page);
@@ -1089,15 +1333,30 @@ async function fpdfS21Tutte(event, anno) {
                 pdf.SetY(3)
                 cartolina = []
                 for (let mese of mesi) {
-                    rapporti_mese = rapporti.filter(item => (
-                        (item.Mese == mese) &&
-                        (item.Inc == 'p') &&
-                        (item.Gr == gruppo.id)
-                    ))
-                    rapporto = { 'Mese': mese }
-                    rapporto.N = rapporti_mese.length
-                    if (rapporti_mese.length != 0) {
-                        rapporto.Studi = rapporti_mese.map(item => item.Studi).reduce((p, n) => p + n)
+                    rap = db.anagrafica.filter(
+                        p => p.rapporti.findIndex(
+                            r => r.Mese == mese && r.Inc == 'p' && r.Gr == gruppo.id) != -1
+                    )
+                    if (rap.length > 0) {
+                        rapporto = {
+                            N: rap.length,
+                            Studi: rap.map(p => {
+                                iRap = p.rapporti.findIndex(r => r.Mese == mese)
+                                return p.rapporti[iRap].Studi ? p.rapporti[iRap].Studi : 0
+                            }).reduce((p, n) => p + n),
+                            Ore: rap.map(p => {
+                                iRap = p.rapporti.findIndex(r => r.Mese == mese)
+                                return p.rapporti[iRap].Ore ? p.rapporti[iRap].Ore : 0
+                            }).reduce((p, n) => p + n),
+                            Mese: mese
+                        }
+                    } else {
+                        rapporto = {
+                            N: 0,
+                            Studi: 0,
+                            Ore: 0,
+                            Mese: mese
+                        }
                     }
                     cartolina.push(rapporto)
                 }
@@ -1108,18 +1367,30 @@ async function fpdfS21Tutte(event, anno) {
                 pdf.SetY(3)
                 cartolina = []
                 for (let mese of mesi) {
-                    procGruppo = anagrafica.filter(item => item.Gr == gruppo.id).map(item => item.id)
-                    rapporti_mese = rapporti.filter(item => (
-                        (item.Mese == mese) &&
-                        (item.Inc == 'pa') &&
-                        (item.Gr == gruppo.id)
-                    ))
-                    rapporto = { 'Mese': mese }
-                    rapporto.N = rapporti_mese.length
-                    if (rapporti_mese.length != 0) {
-                        keys.forEach(function (key, indiceKeys) {
-                            rapporto[key] = rapporti_mese.map(item => item[key]).reduce((p, n) => p + n)
-                        })
+                    rap = db.anagrafica.filter(
+                        p => p.rapporti.findIndex(
+                            r => r.Mese == mese && r.Inc == 'pa' && r.Gr == gruppo.id) != -1
+                    )
+                    if (rap.length > 0) {
+                        rapporto = {
+                            N: rap.length,
+                            Studi: rap.map(p => {
+                                iRap = p.rapporti.findIndex(r => r.Mese == mese)
+                                return p.rapporti[iRap].Studi ? p.rapporti[iRap].Studi : 0
+                            }).reduce((p, n) => p + n),
+                            Ore: rap.map(p => {
+                                iRap = p.rapporti.findIndex(r => r.Mese == mese)
+                                return p.rapporti[iRap].Ore ? p.rapporti[iRap].Ore : 0
+                            }).reduce((p, n) => p + n),
+                            Mese: mese
+                        }
+                    } else {
+                        rapporto = {
+                            N: 0,
+                            Studi: 0,
+                            Ore: 0,
+                            Mese: mese
+                        }
                     }
                     cartolina.push(rapporto)
                 }
@@ -1130,17 +1401,30 @@ async function fpdfS21Tutte(event, anno) {
                 pdf.SetY(3)
                 cartolina = []
                 for (let mese of mesi) {
-                    rapporti_mese = rapporti.filter(item => (
-                        (item.Mese == mese) &&
-                        (item.Inc == 'pr') &&
-                        (item.Gr == gruppo.id)
-                    ))
-                    rapporto = { 'Mese': mese }
-                    rapporto.N = rapporti_mese.length
-                    if (rapporti_mese.length != 0) {
-                        keys.forEach(function (key, indiceKeys) {
-                            rapporto[key] = rapporti_mese.map(item => item[key]).reduce((p, n) => p + n)
-                        })
+                    rap = db.anagrafica.filter(
+                        p => p.rapporti.findIndex(
+                            r => r.Mese == mese && r.Inc == 'pr' && r.Gr == gruppo.id) != -1
+                    )
+                    if (rap.length > 0) {
+                        rapporto = {
+                            N: rap.length,
+                            Studi: rap.map(p => {
+                                iRap = p.rapporti.findIndex(r => r.Mese == mese)
+                                return p.rapporti[iRap].Studi ? p.rapporti[iRap].Studi : 0
+                            }).reduce((p, n) => p + n),
+                            Ore: rap.map(p => {
+                                iRap = p.rapporti.findIndex(r => r.Mese == mese)
+                                return p.rapporti[iRap].Ore ? p.rapporti[iRap].Ore : 0
+                            }).reduce((p, n) => p + n),
+                            Mese: mese
+                        }
+                    } else {
+                        rapporto = {
+                            N: 0,
+                            Studi: 0,
+                            Ore: 0,
+                            Mese: mese
+                        }
                     }
                     cartolina.push(rapporto)
                 }
@@ -1151,17 +1435,32 @@ async function fpdfS21Tutte(event, anno) {
             pdf.AddPage()
             pdf.SetY(3)
             cartolina = []
-            idGruppiStranieri = gruppi.filter(item => item.straniero).map(item => item.id)
+            idGruppiStranieri = db.gruppi.filter(item => item.straniero).map(item => item.id)
             for (let mese of mesi) {
-                rapporti_mese = rapporti.filter(item => (
-                    (item.Mese == mese) &&
-                    (item.Inc == 'p') &&
-                    (!idGruppiStranieri.includes(item.Gr))
-                ))
-                rapporto = { 'Mese': mese }
-                rapporto.N = rapporti_mese.length
-                if (rapporti_mese.length != 0) {
-                    rapporto.Studi = rapporti_mese.map(item => item.Studi).reduce((p, n) => p + n)
+                rap = db.anagrafica.filter(
+                    p => p.rapporti.findIndex(
+                        r => r.Mese == mese && r.Inc == 'p' && !idGruppiStranieri.includes(r.Gr)) != -1
+                )
+                if (rap.length > 0) {
+                    rapporto = {
+                        N: rap.length,
+                        Studi: rap.map(p => {
+                            iRap = p.rapporti.findIndex(r => r.Mese == mese)
+                            return p.rapporti[iRap].Studi ? p.rapporti[iRap].Studi : 0
+                        }).reduce((p, n) => p + n),
+                        Ore: rap.map(p => {
+                            iRap = p.rapporti.findIndex(r => r.Mese == mese)
+                            return p.rapporti[iRap].Ore ? p.rapporti[iRap].Ore : 0
+                        }).reduce((p, n) => p + n),
+                        Mese: mese
+                    }
+                } else {
+                    rapporto = {
+                        N: 0,
+                        Studi: 0,
+                        Ore: 0,
+                        Mese: mese
+                    }
                 }
                 cartolina.push(rapporto)
             }
@@ -1172,17 +1471,30 @@ async function fpdfS21Tutte(event, anno) {
             pdf.SetY(3)
             cartolina = []
             for (let mese of mesi) {
-                rapporti_mese = rapporti.filter(item => (
-                    (item.Mese == mese) &&
-                    (item.Inc == 'pa') &&
-                    (!idGruppiStranieri.includes(item.Gr))
-                ))
-                rapporto = { 'Mese': mese }
-                rapporto.N = rapporti_mese.length
-                if (rapporti_mese.length != 0) {
-                    keys.forEach(function (key, indiceKeys) {
-                        rapporto[key] = rapporti_mese.map(item => item[key]).reduce((p, n) => p + n)
-                    })
+                rap = db.anagrafica.filter(
+                    p => p.rapporti.findIndex(
+                        r => r.Mese == mese && r.Inc == 'pa' && !idGruppiStranieri.includes(r.Gr)) != -1
+                )
+                if (rap.length > 0) {
+                    rapporto = {
+                        N: rap.length,
+                        Studi: rap.map(p => {
+                            iRap = p.rapporti.findIndex(r => r.Mese == mese)
+                            return p.rapporti[iRap].Studi ? p.rapporti[iRap].Studi : 0
+                        }).reduce((p, n) => p + n),
+                        Ore: rap.map(p => {
+                            iRap = p.rapporti.findIndex(r => r.Mese == mese)
+                            return p.rapporti[iRap].Ore ? p.rapporti[iRap].Ore : 0
+                        }).reduce((p, n) => p + n),
+                        Mese: mese
+                    }
+                } else {
+                    rapporto = {
+                        N: 0,
+                        Studi: 0,
+                        Ore: 0,
+                        Mese: mese
+                    }
                 }
                 cartolina.push(rapporto)
             }
@@ -1193,17 +1505,30 @@ async function fpdfS21Tutte(event, anno) {
             pdf.SetY(3)
             cartolina = []
             for (let mese of mesi) {
-                rapporti_mese = rapporti.filter(item => (
-                    (item.Mese == mese) &&
-                    (item.Inc == 'pr') &&
-                    (!idGruppiStranieri.includes(item.Gr))
-                ))
-                rapporto = { 'Mese': mese }
-                rapporto.N = rapporti_mese.length
-                if (rapporti_mese.length != 0) {
-                    keys.forEach(function (key, indiceKeys) {
-                        rapporto[key] = rapporti_mese.map(item => item[key]).reduce((p, n) => p + n)
-                    })
+                rap = db.anagrafica.filter(
+                    p => p.rapporti.findIndex(
+                        r => r.Mese == mese && r.Inc == 'pr' && !idGruppiStranieri.includes(r.Gr)) != -1
+                )
+                if (rap.length > 0) {
+                    rapporto = {
+                        N: rap.length,
+                        Studi: rap.map(p => {
+                            iRap = p.rapporti.findIndex(r => r.Mese == mese)
+                            return p.rapporti[iRap].Studi ? p.rapporti[iRap].Studi : 0
+                        }).reduce((p, n) => p + n),
+                        Ore: rap.map(p => {
+                            iRap = p.rapporti.findIndex(r => r.Mese == mese)
+                            return p.rapporti[iRap].Ore ? p.rapporti[iRap].Ore : 0
+                        }).reduce((p, n) => p + n),
+                        Mese: mese
+                    }
+                } else {
+                    rapporto = {
+                        N: 0,
+                        Studi: 0,
+                        Ore: 0,
+                        Mese: mese
+                    }
                 }
                 cartolina.push(rapporto)
             }
@@ -1215,11 +1540,26 @@ async function fpdfS21Tutte(event, anno) {
         pdf.SetY(3)
         cartolina = []
         for (let mese of mesi) {
-            rapporti_mese = rapporti.filter(item => ((item.Mese == mese) && (item.Inc == 'p')))
-            rapporto = { 'Mese': mese }
-            rapporto.N = rapporti_mese.length
-            if (rapporti_mese.length != 0) {
-                rapporto.Studi = rapporti_mese.map(item => item.Studi).reduce((p, n) => p + n)
+            rap = db.anagrafica.filter(p => p.rapporti.findIndex(r => r.Mese == mese && r.Inc == 'p') != -1)
+            if (rap.length > 0) {
+                rapporto = {
+                    N: rap.length,
+                    Studi: rap.map(p => {
+                        iRap = p.rapporti.findIndex(r => r.Mese == mese)
+                        return p.rapporti[iRap].Studi ? p.rapporti[iRap].Studi : 0
+                    }).reduce((p, n) => p + n),
+                    Ore: rap.map(p => {
+                        iRap = p.rapporti.findIndex(r => r.Mese == mese)
+                        return p.rapporti[iRap].Ore ? p.rapporti[iRap].Ore : 0
+                    }).reduce((p, n) => p + n),
+                    Mese: mese
+                }
+            } else {
+                rapporto = {
+                    N: 0,
+                    Studi: 0,
+                    Ore: 0
+                }
             }
             cartolina.push(rapporto)
         }
@@ -1230,13 +1570,26 @@ async function fpdfS21Tutte(event, anno) {
         pdf.SetY(3)
         cartolina = []
         for (let mese of mesi) {
-            rapporto = { 'Mese': mese }
-            rapporti_mese = rapporti.filter(item => ((item.Mese == mese) && (item.Inc == 'pa')))
-            rapporto.N = rapporti_mese.length
-            if (rapporti_mese.length != 0) {
-                keys.forEach(function (key, indiceKeys) {
-                    rapporto[key] = rapporti_mese.map(item => item[key]).reduce((p, n) => p + n)
-                })
+            rap = db.anagrafica.filter(p => p.rapporti.findIndex(r => r.Mese == mese && r.Inc == 'pa') != -1)
+            if (rap.length > 0) {
+                rapporto = {
+                    N: rap.length,
+                    Studi: rap.map(p => {
+                        iRap = p.rapporti.findIndex(r => r.Mese == mese)
+                        return p.rapporti[iRap].Studi ? p.rapporti[iRap].Studi : 0
+                    }).reduce((p, n) => p + n),
+                    Ore: rap.map(p => {
+                        iRap = p.rapporti.findIndex(r => r.Mese == mese)
+                        return p.rapporti[iRap].Ore ? p.rapporti[iRap].Ore : 0
+                    }).reduce((p, n) => p + n),
+                    Mese: mese
+                }
+            } else {
+                rapporto = {
+                    N: 0,
+                    Studi: 0,
+                    Ore: 0
+                }
             }
             cartolina.push(rapporto)
         }
@@ -1247,13 +1600,26 @@ async function fpdfS21Tutte(event, anno) {
         pdf.SetY(3)
         cartolina = []
         for (let mese of mesi) {
-            rapporto = { 'Mese': mese }
-            rapporti_mese = rapporti.filter(item => ((item.Mese == mese) && (item.Inc == 'pr')))
-            rapporto.N = rapporti_mese.length
-            if (rapporti_mese.length != 0) {
-                keys.forEach(function (key, indiceKeys) {
-                    rapporto[key] = rapporti_mese.map(item => item[key]).reduce((p, n) => p + n)
-                })
+            rap = db.anagrafica.filter(p => p.rapporti.findIndex(r => r.Mese == mese && r.Inc == 'p') != -1)
+            if (rap.length > 0) {
+                rapporto = {
+                    N: rap.length,
+                    Studi: rap.map(p => {
+                        iRap = p.rapporti.findIndex(r => r.Mese == mese)
+                        return p.rapporti[iRap].Studi ? p.rapporti[iRap].Studi : 0
+                    }).reduce((p, n) => p + n),
+                    Ore: rap.map(p => {
+                        iRap = p.rapporti.findIndex(r => r.Mese == mese)
+                        return p.rapporti[iRap].Ore ? p.rapporti[iRap].Ore : 0
+                    }).reduce((p, n) => p + n),
+                    Mese: mese
+                }
+            } else {
+                rapporto = {
+                    N: 0,
+                    Studi: 0,
+                    Ore: 0
+                }
             }
             cartolina.push(rapporto)
         }
@@ -1264,17 +1630,33 @@ async function fpdfS21Tutte(event, anno) {
         pdf.SetY(3)
         cartolina = []
         for (let mese of mesi) {
-            rapporto = { 'Mese': mese }
-            rapporti_mese = rapporti.filter(item => (item.Mese == mese))
-            rapporto.N = rapporti_mese.length
-            if (rapporti_mese.length != 0) {
-                rapporto.Studi = rapporti_mese.map(item => item.Studi).reduce((p, n) => p + n)
-                rapporto.Ore = rapporti_mese.map(item => item.Inc != "p" ? item.Ore : 0).reduce((p, n) => p + n)
-                let p = rapporti_mese.filter(item => item.Inc == 'p')
-                let pa = rapporti_mese.filter(item => item.Inc == 'pa')
-                let pr = rapporti_mese.filter(item => item.Inc == 'pr')
-                let ir = rapporti_mese.filter(item => item.Inc == 'ir')
-                rapporto.Note = `P:${p.length}  PA:${pa.length}  PR:${pr.length}  IR:${ir.length}`
+            rap = db.anagrafica.filter(p => p.rapporti.findIndex(r => r.Mese == mese) != -1)
+            let p = db.anagrafica.filter(p => p.rapporti.findIndex(r => r.Mese == mese && r.Inc == 'p') != -1).length
+            let pa = db.anagrafica.filter(p => p.rapporti.findIndex(r => r.Mese == mese && r.Inc == 'pa') != -1).length
+            let pr = db.anagrafica.filter(p => p.rapporti.findIndex(r => r.Mese == mese && r.Inc == 'pr') != -1).length
+            let ps = db.anagrafica.filter(p => p.rapporti.findIndex(r => r.Mese == mese && r.Inc == 'ps') != -1).length
+            let ir = db.anagrafica.filter(p => p.rapporti.findIndex(r => r.Mese == mese && r.Inc == 'ir') != -1).length
+            note = `P:${p} PA:${pa} PR:${pr} PS:${ps} IR:${ir}`
+            if (rap.length > 0) {
+                rapporto = {
+                    N: rap.length,
+                    Studi: rap.map(p => {
+                        iRap = p.rapporti.findIndex(r => r.Mese == mese)
+                        return p.rapporti[iRap].Studi ? p.rapporti[iRap].Studi : 0
+                    }).reduce((p, n) => p + n),
+                    Ore: rap.map(p => {
+                        iRap = p.rapporti.findIndex(r => r.Mese == mese)
+                        return p.rapporti[iRap].Ore ? p.rapporti[iRap].Ore : 0
+                    }).reduce((p, n) => p + n),
+                    Note: note,
+                    Mese: mese
+                }
+            } else {
+                rapporto = {
+                    N: 0,
+                    Studi: 0,
+                    Ore: 0
+                }
             }
             cartolina.push(rapporto)
         }
@@ -1283,7 +1665,6 @@ async function fpdfS21Tutte(event, anno) {
 
         try {
             pdf.Output('F', path.join(filePaths[0], `S-21 complete ${anno}.pdf`))
-            shell.showItemInFolder(path.join(filePaths[0], `S-21 complete ${anno}.pdf`));
             return { succ: true, msg: "File creato" }
         } catch (e) {
             return { succ: false, msg: 'Errore: ' + e }
@@ -1330,9 +1711,9 @@ async function fpdfS88(event, anno) {
         mesi = mesiAnnoTeocratico(anno)
         sommaI = contaI = 0
         sommaF = contaF = 0
-        presenti_tutti = await readFile(null, 'presenti')
+        db = await readFile(null, 'db')
         for (x = 0; x < 12; x++) {
-            presenti = presenti_tutti.filter(item => item.Mese == mesi[x])
+            presenti = db.presenti.filter(item => item.Mese == mesi[x])
             totI = cI = 0
             totF = cF = 0
             if (presenti.length > 0) {
@@ -1393,251 +1774,9 @@ async function fpdfS88(event, anno) {
 
         try {
             pdf.Output('F', path.join(filePaths[0], `S-88 ${anno}.pdf`))
-            shell.showItemInFolder(path.join(filePaths[0], `S-88 ${anno}.pdf`));
             return { succ: true, msg: "File creato" }
         } catch (e) {
             return { succ: false, msg: 'Errore: ' + e }
         }
     }
-}
-
-//import da xampp
-/*
-async function importaFile() {
-    const { canceled, filePaths } = await dialog.showOpenDialog()
-    if (canceled) {
-        return
-    } else {
-        for (tabella of tabelle) {
-            fs.copyFile(path.join(userData, tabella + '.json'), path.join(userData, tabella + '.tmp'), (err) => {
-                if (err) throw err;
-            })
-        }
-        try {
-            for (tabella of tabelle) {
-                db.clearTable(tabella, (succ, msg) => {
-                    if (!succ) {
-                        throw [msg, 1]
-                    }
-                })
-            }
-            let tables = JSON.parse(fs.readFileSync(filePaths[0]))
-            //gruppi
-            for (item of tables.gruppi) {
-                let result = await insertTableContent(null, 'gruppi', item)
-                if (!result.succ) {
-                    throw [result.msg, 2]
-                }
-            }
-            //anagrafica
-            for (item of tables.anagrafica) {
-                if (item.Gr) {
-                    gruppo = await getRows(null, 'gruppi', { 'Num': item.Gr })
-                    item.Gr = gruppo[0].id
-                }
-                result = await insertTableContent(null, 'anagrafica', item)
-                if (!result.succ) {
-                    throw [result.msg, 3]
-                }
-            }
-            //rapporti
-            for (item of tables.rapporti) {
-                anag = await getRows(null, 'anagrafica', { 'CP_Anag': item.CE_Anag })
-                if (anag.length == 1) {
-                    item['CE_Anag'] = anag[0].id
-                    item['Pubb'] = Number(item['Pubb']) == 0 ? null : Number(item['Pubb'])
-                    item['Video'] = Number(item['Video']) == 0 ? null : Number(item['Video'])
-                    item['Ore'] = Number(item['Ore'])
-                    item['VU'] = Number(item['VU']) == 0 ? null : Number(item['VU'])
-                    item['Studi'] = Number(item['Studi']) == 0 ? null : Number(item['Studi'])
-                    result = await insertTableContent(null, 'rapporti', item)
-                    if (!result.succ) {
-                        throw [result.msg, 4]
-                    }
-                }
-            }
-            //sorvegliante
-            sorv = tables.sorvegliante[0]
-            sorv.CP_CO = 0
-            result = await insertTableContent(null, 'sorvegliante', sorv)
-            if (!result.succ) {
-                throw [result.msg, 5]
-            }
-            //presenti
-            for (item of tables.presenti) {
-                esiste = await getRows(null, 'presenti', { 'Mese': item.Mese, })
-                if (esiste.length == 0) {
-                    array = {
-                        'Mese': item.Mese,
-                        'i1': null,
-                        'i2': null,
-                        'i3': null,
-                        'i4': null,
-                        'i5': null,
-                        'f1': null,
-                        'f2': null,
-                        'f3': null,
-                        'f4': null,
-                        'f5': null,
-                    }
-                    result = await insertTableContent(null, 'presenti', array)
-                    if (!result.succ) {
-                        throw [result.msg, 6]
-                    }
-                }
-                result = await updateRow(
-                    null,
-                    'presenti',
-                    { [`${item.Adun}${item.Settimana}`]: Number(item.Presenti) },
-                    { 'Mese': item.Mese, })
-                if (!result.succ)
-                    throw [result.msg, 7]
-            }
-        }
-        catch (e) {
-            /*
-            for (tabella of tabelle) {
-                fs.unlink(path.join(userData, tabella + '.json'), function (err) {
-                    if (err) return console.log(err);
-                    console.log('file deleted successfully');
-                })
-                fs.rename(path.join(userData, tabella + '.tmp'), path.join(userData, tabella + '.json'), function (err) {
-                    if (err) console.log('ERROR: ' + err);
-                });
-            }
-            
-            return {
-                succ: false, msg: `Impossibile importare dati. <br> 
-                    Operazione annullata. <br> Errore${e[1]}: ${e[0]}`
-            }
-        }
- 
-        //controllo sulle chiavi primarie
-        let doppioni = false
-        for (tabella of tabelle) {
-            let tab = await readFile(null, tabella)
-            var valueArr = tab.map(function (item) { return item.id });
-            var isDuplicate = valueArr.some(function (item, idx) {
-                if (valueArr.indexOf(item) != idx)
-                    return item
-                else
-                    return valueArr.indexOf(item) != idx
-            })
-            if (isDuplicate) {
-                t = tabella
-                doppioni = true
-            }
-        }
-        if (!doppioni) {
-            console.log('Fatto')
-            for (tabella of tabelle) {
-                fs.unlink(path.join(userData, tabella + '.tmp'), function (err) {
-                    if (err) return console.log(err);
-                })
-            }
-            return { succ: true, msg: 'Dati importati con successo' }
-        } else {
-            console.log('errori')
-            return { succ: false, msg: `Dati importati con chiavi doppie. Tabella: ${t}, id: ${isDuplicate}` }
-        }
-    }
-}
-*/
-
-async function loadBackup() {
-    const { canceled, filePaths } = await dialog.showOpenDialog({
-        filters: [
-            { name: 'Backup', extensions: ['json'] },
-        ]
-    })
-    if (canceled) {
-        return
-    } else {
-        for (tabella of tabelle) {
-            fs.copyFile(path.join(userData, tabella + '.json'), path.join(userData, tabella + '.tmp'), (err) => {
-                if (err) throw err;
-            })
-        }
-        let dati = JSON.parse(fs.readFileSync(filePaths[0]))
-        try {
-            for (tabella of tabelle) {
-                //console.log(dati[tabella])
-                fs.writeFileSync(path.join(userData, tabella + '.json'),
-                    JSON.stringify({ [tabella]: dati[tabella] }, null, 2), (err) => {
-                        throw err;
-                    })
-            }
-            for (tabella of tabelle) {
-                fs.unlink(path.join(userData, tabella + '.tmp'), function (err) {
-                    if (err) return console.log(err);
-                })
-            }
-            ottimizzaTabelle()
-            return { succ: true, msg: 'Dati importati con successo' }
-        } catch (err) {
-            for (tabella of tabelle) {
-                fs.unlink(path.join(userData, tabella + '.json'), function (err) {
-                    if (err) return console.log(err);
-                    console.log('file deleted successfully');
-                })
-                fs.rename(path.join(userData, tabella + '.tmp'), path.join(userData, tabella + '.json'), function (err) {
-                    if (err) console.log('ERROR: ' + err);
-                });
-            }
-            return { succ: false, msg: err }
-        }
-    }
-}
-
-async function saveBackup() {
-    const { canceled, filePaths } = await dialog.showOpenDialog({ properties: ['openDirectory'] })
-    if (canceled) {
-        return
-    } else {
-        let backup = {}
-        for (tabella of tabelle) {
-            backup[tabella] = JSON.parse(fs.readFileSync(path.join(userData, tabella + '.json')))[tabella]
-        }
-        try {
-            d = new Date()
-            nomeFile = 'backup_' +
-                d.getFullYear() + '-' +
-                ('0' + (d.getMonth() + 1)).slice(-2) + '-' +
-                ('0' + d.getDate()).slice(-2) + '-' +
-                d.getHours() + '-' +
-                d.getMinutes() + '.json'
-            fs.writeFileSync(path.join(filePaths[0], nomeFile),
-                JSON.stringify(backup, null, 2), (err) => {
-                    log.info(err)
-                    throw err;
-                })
-            return { succ: true, msg: 'Backup effettuato' }
-        } catch (err) {
-            console.log(err)
-            return { succ: false, msg: err }
-        }
-    }
-}
-
-function unescapeHtml(safe) {
-    return safe
-        .replace(/&amp;/g, "&")
-        .replace(/&lt;/g, "<")
-        .replace(/&gt;/g, ">")
-        .replace(/&quot;/g, '"')
-        .replace(/&#039;/g, "'");
-}
-
-function mesiAnnoTeocratico(anno) {
-    let mesi = []
-    let mese = new Date((Number(anno) - 1) + "-09")
-    for (let x = 0; x < 12; x++) {
-        mesi.push(`${mese.toLocaleString('it-IT', {
-            year: 'numeric'
-        })}-${mese.toLocaleString('it-IT', {
-            month: '2-digit'
-        })}`)
-        mese.setMonth(mese.getMonth() + 1);
-    }
-    return mesi
 }

@@ -73,3 +73,7 @@ v1.2.5
 - rapporti: migliorato salvataggio e bugfix
 - S-21: mostra cartoline degli eliminati
 - dati: elimina registrazione presenti
+
+v1.2.6
+- rapporti: aggiornato pdf elenco rapporti
+- db: nuova versione database e ottimizzato intero programma

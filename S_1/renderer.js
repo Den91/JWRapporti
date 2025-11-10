@@ -5,11 +5,8 @@ var pr
 var ps
 var tot
 var ir
-
-
-$(window).resize(function () {
-    marginBody()
-})
+var db
+var mese
 
 $(document).ready(async function () {
     navbar("S-1")
@@ -18,99 +15,64 @@ $(document).ready(async function () {
 })
 
 async function visualS1() {
+    db = await window.electronAPI.readFile('db')
     mese = $('[name="mese"]').val()
     sessionStorage.setItem('mese', mese)
-    p = { n: 0, Studi: 0 }
-    pa = { n: 0, Studi: 0, Ore: 0 }
-    pr = { n: 0, Studi: 0, Ore: 0 }
-    ps = { n: 0, Studi: 0, Ore: 0 }
-    tot = { n: 0, Studi: 0, Ore: 0 }
-    ir = 0
     $("#CardTotali").addClass("d-none")
     if (mese != "") {
-        rapporti = await window.electronAPI.readFile('rapporti')
-        rapporti_mese = rapporti.filter(rapporto => rapporto.Mese == mese)
-        rapporti_mese.forEach(function (rap, indice) {
-            if (rap.Inc == 'p') {
-                p.n++
-                p.Studi += rap.Studi
-            }
-            if (rap.Inc == 'pa') {
-                pa.n++
-                keys.forEach(function (key, indice) {
-                    pa[key] += rap[key]
-                })
-            }
-            if (rap.Inc == 'pr') {
-                pr.n++
-                keys.forEach(function (key, indice) {
-                    pr[key] += rap[key]
-                })
-            }
-            if (rap.Inc == 'ps') {
-                ps.n++
-                keys.forEach(function (key, indice) {
-                    ps[key] += rap[key]
-                })
-            }
-            if (rap.Inc == 'ir') {
-                ir++
-            } else {
-                tot.n++
-                keys.forEach(function (key, indice) {
-                    tot[key] += rap[key]
-                })
-            }
-        })
-        //console.log(p)
-        //console.log(pa)
-        //console.log(pr)
-        //console.log(ps)
-        //console.log(ir)
-        $("#TableTotali tbody").html("")
-        $("#TableTotali tfoot").html("")
-        $("#proc_attivi").html(``)
-        $("#media_adun").html('')
         $("#CardTotali").removeClass("d-none")
-        $("#TableTotali tbody").append(`
-            <tr>
-                <td>Proclamatori</td>
-                <td class="text-center">${p.n}</td>
-                <td class="text-center">${p.Studi}</td>
-                <td class="text-center"></td>
-            </tr>`)
-        $("#TableTotali tbody").append(`
-            <tr>
-                <td>Pionieri ausiliari</td>
-                <td class="text-center">${pa.n}</td>
-                <td class="text-center">${pa.Studi}</td>
-                <td class="text-center">${pa.Ore}</td>
-            </tr>`)
-        $("#TableTotali tbody").append(`
-            <tr>
-                <td>Pionieri regolari</td>
-                <td class="text-center">${pr.n}</td>
-                <td class="text-center">${pr.Studi}</td>
-                <td class="text-center">${pr.Ore}</td>
-            </tr>`)
-        $("#TableTotali tfoot").append(`
-            <tr>
-                <td>Totale rapporti</td>
-                <td class="text-center">${tot.n}</td>
-                <td class="text-center">${tot.Studi}</td>
-                <td class="text-center">${tot.Ore}</td>
-            </tr>`)
-        $("#proc_attivi").html(tot.n + ir)
-
-        presenti = await window.electronAPI.readFile('presenti')
-        presenti_mese = presenti.filter(presenti => presenti.Mese == mese)
+        tot = {
+            p: { N: 0, Studi: 0 },
+            pa: { N: 0, Ore: 0, Studi: 0 },
+            pr: { N: 0, Ore: 0, Studi: 0 },
+            ps: { N: 0 },
+            ir: { N: 0 }
+        }
+        for (let i = 0; i < db.anagrafica.length; i++) {
+            iRap = db.anagrafica[i].rapporti.findIndex(r => r.Mese == mese)
+            if (iRap != -1) {
+                if (db.anagrafica[i].rapporti[iRap].Inc == 'p') {
+                    tot.p.N++
+                    tot.p.Studi += db.anagrafica[i].rapporti[iRap].Studi ? db.anagrafica[i].rapporti[iRap].Studi : 0
+                }
+                if (db.anagrafica[i].rapporti[iRap].Inc == 'pa') {
+                    tot.pa.N++
+                    tot.pa.Ore += db.anagrafica[i].rapporti[iRap].Ore ? db.anagrafica[i].rapporti[iRap].Ore : 0
+                    tot.pa.Studi += db.anagrafica[i].rapporti[iRap].Studi ? db.anagrafica[i].rapporti[iRap].Studi : 0
+                }
+                if (db.anagrafica[i].rapporti[iRap].Inc == 'pr') {
+                    tot.pr.N++
+                    tot.pr.Ore += db.anagrafica[i].rapporti[iRap].Ore ? db.anagrafica[i].rapporti[iRap].Ore : 0
+                    tot.pr.Studi += db.anagrafica[i].rapporti[iRap].Studi ? db.anagrafica[i].rapporti[iRap].Studi : 0
+                }
+                if (db.anagrafica[i].rapporti[iRap].Inc == 'ps') {
+                    tot.ps.N++
+                }
+                if (db.anagrafica[i].rapporti[iRap].Inc == 'ir') {
+                    tot.ir.N++
+                }
+            }
+        }
+        $('#pN').html(tot.p.N)
+        $('#pStudi').html(tot.p.Studi)
+        $('#paN').html(tot.pa.N)
+        $('#paStudi').html(tot.pa.Studi)
+        $('#paOre').html(tot.pa.Ore)
+        $('#prN').html(tot.pr.N)
+        $('#prStudi').html(tot.pr.Studi)
+        $('#prOre').html(tot.pr.Ore)
+        $('#totN').html(tot.p.N + tot.pa.N + tot.pr.N)
+        $('#totStudi').html(tot.p.Studi + tot.pa.Studi + tot.pr.Studi)
+        $('#totOre').html(tot.pa.Ore + tot.pr.Ore)
+        $("#proc_attivi").html(tot.p.N + tot.pa.N + tot.pr.N + tot.ps.N + tot.ir.N)
         media_presenti = 0
-        if (presenti_mese.length != 0) {
+        i = db.presenti.findIndex(presenti => presenti.Mese == mese)
+        if (i != -1) {
             t = 0
             c = 0
             for (x = 1; x < 6; x++) {
-                if (presenti_mese[0]['f' + x] > 0) {
-                    t += Number(presenti_mese[0]['f' + x])
+                if (db.presenti[i]['f' + x] > 0) {
+                    t += Number(db.presenti[i]['f' + x])
                     c++
                 }
             }

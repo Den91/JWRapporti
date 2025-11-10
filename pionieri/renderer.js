@@ -1,26 +1,11 @@
 var anno
 var anni
-var pionieri
-
-$(window).resize(function () {
-    marginBody()
-})
+var db
 
 $(document).ready(async function () {
     navbar("pionieri")
-
-    rapporti = await window.electronAPI.readFile('rapporti')
-    mesi = [...new Set(rapporti.map(item => item.Mese))]
-    mesi.sort()
-    mesi.forEach(function (o, i) {
-        m = Number(o.slice(5, 7))
-        a = Number(o.slice(0, 4))
-        if (m >= 9) {
-            a++
-        }
-        mesi[i] = a
-    })
-    anni = [...new Set(mesi)]
+    db = await window.electronAPI.readFile('db')
+    anni = arrayAnniRapporti(db)
     anni.forEach(function (a, indice) {
         $('[name="selectAnno"]').append(`<option value="${a}">${a}</option>`)
     })
@@ -48,8 +33,7 @@ async function visualPionieri() {
         })
         $('#TablePionieri thead tr').append(`<th class="text-center">Totale</th>`)
         $('#TablePionieri thead tr').append(`<th class="text-center">Media</th>`)
-        proclamatori = await window.electronAPI.readFile('anagrafica')
-        pionieri = proclamatori.filter(item => ((item.PR_PS == 'PR') && (item.Elimina == '0')))
+        pionieri = db.anagrafica.filter(item => ((item.PR_PS == 'PR') && (!item.Eliminato)))
         for (pioniere of pionieri) {
             $('#TablePionieri tbody').append(`
                 <tr id=${pioniere.id}>
@@ -60,7 +44,7 @@ async function visualPionieri() {
             $("#TablePionieri tbody tr:last").append(new Array(15).join('<td class="text-center"></td>'));
             conta = somma = 0
             for (x = 0; x < 12; x++) {
-                rapporto = rapporti.filter(item => ((item.Mese == mesi[x]) && (item.CE_Anag == pioniere.id)))
+                rapporto = pioniere.rapporti.filter(item => (item.Mese == mesi[x]))
                 if (rapporto.length != 0) {
                     conta++
                     if (rapporto[0].Abbuono > 0) {

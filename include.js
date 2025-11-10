@@ -1,6 +1,6 @@
 function navbar(pagina) {
   $("body").prepend(`
-  <nav class="navbar fixed-top navbar-expand-md navbar-dark bg-dark" id="navbar">
+  <nav class="navbar sticky-top navbar-expand-md navbar-dark bg-dark" id="navbar">
     <div class="container-fluid">
       <a class="navbar-brand text-info" href="../home/index.html">Home</a>
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent">
@@ -57,12 +57,6 @@ function navbar(pagina) {
   </nav>
         `);
   $('#nav_' + pagina).addClass('active')
-  marginBody()
-}
-
-function marginBody() {
-  document.body.style.marginTop =
-    document.getElementById("navbar").offsetHeight + "px";
 }
 
 function toast(id, colore, testo, tempo = 5000) {
@@ -76,7 +70,7 @@ function toast(id, colore, testo, tempo = 5000) {
       break
   }
   $(".toast-container").append(`
-  <div class="toast border-0" id="${id}" data-bs-delay="${tempo}">
+  <div class="toast shadow border-0" id="${id}" data-bs-delay="${tempo}">
     <div class="d-flex alert alert-${colore} m-0 p-0">
       <div class="toast-body my-3 ms-1">
         ${testo}
@@ -216,4 +210,26 @@ function modalAvviso(avviso, nomeFunzione) {
     $("#buttonModal").attr('onclick', nomeFunzione)
   }
   $("#ModalAvviso").modal("show")
+}
+
+function arrayMesiRapporti(db) {
+  mesi = []
+  db.anagrafica.forEach(p => {
+    mesi = [...new Set([...mesi, ...[...new Set(p.rapporti.map(r => r.Mese))]])]
+  })
+  return mesi.sort()
+}
+
+function arrayAnniRapporti(db) {
+  anni = []
+  mesi = arrayMesiRapporti(db)
+  mesi.forEach(o => {
+    m = Number(o.slice(5, 7))
+    a = Number(o.slice(0, 4))
+    if (m >= 9) {
+      a++
+    }
+    anni.push(a)
+  })
+  return [...new Set(anni)].sort()
 }

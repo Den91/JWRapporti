@@ -1,63 +1,47 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="utf-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1, shrink-to-fit=no"
-    />
-    <link
-      href="../node_modules/bootstrap/dist/css/bootstrap.min.css"
-      rel="stylesheet"
-    />
-    <link
-      rel="stylesheet"
-      href="../node_modules/bootstrap-icons/font/bootstrap-icons.css"
-    />
-    <script src="../node_modules/jquery/dist/jquery.min.js"></script>
-    <script src="../node_modules/chart.js/dist/chart.js"></script>
-    <script type="text/javascript" src="../include.js"></script>
-  </head>
 
-  <body>
-    <div class="position-relative" style="z-index: 11">
-      <div class="toast-container top-0 end-0 p-3"></div>
-    </div>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+  <link href="../node_modules/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="../node_modules/bootstrap-icons/font/bootstrap-icons.css" />
+  <script src="../node_modules/jquery/dist/jquery.min.js"></script>
+  <script type="text/javascript" src="../include.js"></script>
+</head>
 
-    <div class="container-fluid pt-3">
-      <div class="row mb-3">
-        <div class="col-3">
-          <h4 class="text-center">Gestione Backup</h4>
-          <div class="d-grid mx-5">
-            <button
-              id="import"
-              class="btn btn-primary mb-2"
-              onclick="loadBackup()"
-            >
-              Importa backup
-            </button>
-            <button
-              id="backup"
-              class="btn btn-primary mb-2"
-              onclick="saveBackup()"
-            >
-              Crea backup
-            </button>
-          </div>
-        </div>
-        <div class="col">
-          <h4 class="text-center">Gestione rapporti per anno</h4>
-          <div class="px-5" id="tabAnni"></div>
-        </div>
-        <div class="col">
-          <h4 class="text-center">Gestione proclamatori disattivati</h4>
-          <div class="px-5" id="tabProcElim"></div>
+<body>
+  <div class="position-relative" style="z-index: 11">
+    <div class="toast-container top-0 end-0 p-3"></div>
+  </div>
+
+  <div class="container-fluid pt-3">
+    <div class="row mb-3">
+      <div class="col-3">
+        <h4 class="text-center">Gestione Backup</h4>
+        <div class="d-grid mx-5">
+          <button id="import" class="btn btn-primary mb-2" onclick="loadBackup()">
+            Importa backup
+          </button>
+          <button id="backup" class="btn btn-primary mb-2" onclick="saveBackup()">
+            Crea backup
+          </button>
         </div>
       </div>
+      <div class="col">
+        <h4 class="text-center">Gestione rapporti per anno</h4>
+        <div class="px-5" id="tabAnni"></div>
+      </div>
+      <div class="col">
+        <h4 class="text-center">Gestione proclamatori disattivati</h4>
+        <div class="px-5" id="tabProcElim"></div>
+      </div>
     </div>
+  </div>
 
-    <script src="renderer.js"></script>
-    <!-- Option 1: Bootstrap Bundle with Popper -->
-    <script src="../node_modules/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-  </body>
+  <script src="renderer.js"></script>
+  <!-- Option 1: Bootstrap Bundle with Popper -->
+  <script src="../node_modules/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
 </html>

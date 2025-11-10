@@ -1,14 +1,8 @@
-var rapporti
-var presenti
-var proclamatori
+var db
 
 $(document).ready(async function () {
     navbar("dati")
     loadPage()
-})
-
-$(window).resize(function () {
-    marginBody()
 })
 
 async function xampp() {
@@ -29,25 +23,12 @@ async function saveBackup() {
 }
 
 async function loadPage() {
-    rapporti = await window.electronAPI.readFile('rapporti')
-    presenti = await window.electronAPI.readFile('presenti')
-    proclamatori = await window.electronAPI.readFile('anagrafica')
-
+    db = await window.electronAPI.readFile('db')
     $("#tabAnni").html('')
-    mesi = [...new Set(rapporti.map(item => item.Mese))]
-    mesi.sort()
-    mesi.forEach(function (o, i) {
-        m = Number(o.slice(5, 7))
-        a = Number(o.slice(0, 4))
-        if (m >= 9) {
-            a++
-        }
-        mesi[i] = a
-    })
-    anni = [...new Set(mesi)]
+    anni = arrayAnniRapporti(db)
     anni.forEach(function (anno) {
         $("#tabAnni").append(`
-            <div class="input-group mb-3">
+            <div class="input-group mb-2">
                 <input type="text" class="form-control" placeholder="Dati anno ${anno}" readonly></input>
                 <button class="btn btn-danger"
                     type="button"
@@ -61,12 +42,12 @@ async function loadPage() {
     })
 
     $("#tabProcElim").html('')
-    eliminabili = proclamatori.filter(i => i.Elimina == '1')
+    eliminabili = db.anagrafica.filter(i => i.Eliminato)
     eliminabili.forEach(proc => {
-        if (!rapporti.some(i => i.CE_Anag == proc.id)) {
+        if (proc.rapporti.length == 0) {
             //console.log(proc.Nome)
             $("#tabProcElim").append(`
-            <div class="input-group mb-3">
+            <div class="input-group mb-2">
                 <input type="text" class="form-control" placeholder="${proc.Nome}" readonly></input>
                 <button class="btn btn-danger"
                     type="button"
@@ -89,12 +70,15 @@ async function elimAnno(anno) {
     $("#ModalAvviso").modal("hide")
     mesi = mesiAnnoTeocratico(anno)
     try {
-        for (x = 0; x < 12; x++) {
-            rapporti = rapporti.filter(rapporto => rapporto.Mese != mesi[x])
-            presenti = presenti.filter(p => p.Mese != mesi[x])
+        for (i = 0; i < db.anagrafica.length; i++) {
+            for (x = 0; x < 12; x++) {
+                db.anagrafica[i].rapporti = db.anagrafica[i].rapporti.filter(r => r.Mese != mesi[x])
+            }
         }
-        result = await window.electronAPI.writeFile('rapporti', rapporti)
-        result = await window.electronAPI.writeFile('presenti', presenti)
+        for (x = 0; x < 12; x++) {
+            db.presenti = db.presenti.filter(i => i.Mese != mesi[x])
+        }
+        result = await window.electronAPI.writeFile('db', db)
     } catch (e) {
         loadPage()
         toast(new Date().getTime(), "rosso", e, 10000)
@@ -105,11 +89,11 @@ async function elimAnno(anno) {
 }
 
 async function elimProc(id) {
-    let n = proclamatori.findIndex(i => i.id == id)
-    let eliminato = proclamatori[n]
-    proclamatori.splice(n, 1)
+    let n = db.anagrafica.findIndex(i => i.id == id)
+    let eliminato = db.anagrafica[n]
     try {
-        result = await window.electronAPI.writeFile('anagrafica', proclamatori)
+        db.anagrafica.splice(n, 1)
+        result = await window.electronAPI.writeFile('db', db)
     } catch (e) {
         loadPage()
         toast(new Date().getTime(), "rosso", e, 10000)

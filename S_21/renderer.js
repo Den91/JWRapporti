@@ -1,62 +1,31 @@
-var keys = ['Pubb', 'Video', 'Ore', 'VU', 'Studi']
+var db
 var anno
-var proc
-var proclamatori
-var gruppi
-var rapporti
 var anni
-
-$(window).resize(function () {
-    marginBody()
-})
+var keys = ['Ore', 'Studi']
 
 $(document).ready(async function () {
     navbar("S-21")
-
-    rapporti = await window.electronAPI.readFile('rapporti')
-    mesi = [...new Set(rapporti.map(item => item.Mese))]
-    mesi.sort()
-    mesi.forEach(function (o, i) {
-        m = Number(o.slice(5, 7))
-        a = Number(o.slice(0, 4))
-        if (m >= 9) {
-            a++
-        }
-        mesi[i] = a
-    })
-    anni = [...new Set(mesi)]
+    db = await window.electronAPI.readFile('db')
+    anni = arrayAnniRapporti(db)
     anni.forEach(function (a, indice) {
         $('[name="selectAnno"]').append(`<option value="${a}">${a}</option>`)
     })
-    if (sessionStorage.getItem('anno')) {
-        $('[name="selectAnno"]').val(sessionStorage.getItem('anno'))
-    } else {
-        $('[name="selectAnno"]').val($('[name="selectAnno"] option:last').val())
-    }
+    $('[name="selectAnno"]').val(getAnno())
 
-    proclamatori = await window.electronAPI.readFile('anagrafica')
-    proclamatori.sort(function (a, b) {
-        if (a.Nome < b.Nome)
-            return -1
-        if (a.Nome > b.Nome)
-            return 1
-        return 0
-    })
-    proclamatori.forEach(function (proclamatore, indice) {
-        if (proclamatore.Elimina == 1)
+    db.anagrafica.forEach(function (proclamatore, indice) {
+        if (proclamatore.Eliminato)
             $('optgroup[label="Eliminati"]').append(`
                 <option value="${proclamatore.id}">${proclamatore.Nome}</option>`)
         else {
-            if (proclamatore.Attivo == 1)
+            if (proclamatore.Attivo)
                 $('optgroup[label="Attivi"]').append(`
                     <option value="${proclamatore.id}">${proclamatore.Nome}</option>`)
-            if (proclamatore.Attivo == 0)
+            if (!proclamatore.Attivo)
                 $('optgroup[label="Inattivi"]').append(`
                     <option value="${proclamatore.id}">${proclamatore.Nome}</option>`)
         }
     })
-    gruppi = await window.electronAPI.readFile('gruppi')
-    gruppiStranieri = gruppi.filter(item => item.straniero)
+    gruppiStranieri = db.gruppi.filter(item => item.straniero)
     if (gruppiStranieri.length > 0) {
         $('optgroup[label="Parziali"]').removeClass('d-none')
         gruppiStranieri.forEach(function (gruppo, indice) {
@@ -95,7 +64,7 @@ function visualS21() {
     id_proc = $('[name="selectProc"]').val()
     sessionStorage.setItem('anno', anno)
     sessionStorage.setItem('proc', id_proc)
-    tot = { n: 0, Pubb: 0, Video: 0, Ore: 0, VU: 0, Studi: 0 }
+    tot = { n: 0, Ore: 0, Studi: 0 }
     $('#div_cartolina').addClass('d-none')
     $('#buttonSingola').addClass('d-none')
     $('#buttonTutte').addClass('d-none')
@@ -128,15 +97,15 @@ function visualS21() {
                 } else {
                     if (gruppoStraniero[0] == 'p') {
                         $('#Nome').html('Proclamatori gruppo ' +
-                            gruppi.find(item => item.id == Number(gruppoStraniero[1])).Sorv_Gr)
+                            db.gruppi.find(item => item.id == Number(gruppoStraniero[1])).Sorv_Gr)
                     }
                     if (gruppoStraniero[0] == 'pa') {
                         $('#Nome').html('Pionieri ausiliari gruppo ' +
-                            gruppi.find(item => item.id == Number(gruppoStraniero[1])).Sorv_Gr)
+                            db.gruppi.find(item => item.id == Number(gruppoStraniero[1])).Sorv_Gr)
                     }
                     if (gruppoStraniero[0] == 'pr') {
                         $('#Nome').html('Pionieri regolari gruppo ' +
-                            gruppi.find(item => item.id == Number(gruppoStraniero[1])).Sorv_Gr)
+                            db.gruppi.find(item => item.id == Number(gruppoStraniero[1])).Sorv_Gr)
                     }
                 }
             }
@@ -152,7 +121,7 @@ function visualS21() {
             $('#PR').html('<i class="bi bi-circle"></i>')
         } else {
             $('table thead tr th:eq(1)').html('Inc')
-            proc = proclamatori.find(item => item.id == Number(id_proc))
+            proc = db.anagrafica.find(item => item.id == Number(id_proc))
             $('#Nome').html(proc.Nome)
             $('#Nome2').html(proc.Nome2)
             if (proc.D_Nasc)
@@ -206,60 +175,69 @@ function visualS21() {
         for (indice = 0; indice < 12; indice++) {
             $(`table tbody tr:eq(${indice}) td:not(:eq(0))`).html('')
             if (isNaN(id_proc)) {
+                if (id_proc == 'p' || id_proc == 'pa') {
+                    rap = db.anagrafica.filter(p => p.rapporti.findIndex(r => r.Mese == mesi[indice] && r.Inc == id_proc) != -1)
+                    note = ''
+                }
+                if (id_proc == 'pr') {
+                    rap = db.anagrafica.filter(p => p.rapporti.findIndex(r => r.Mese == mesi[indice] && (r.Inc == id_proc || r.Inc == 'ps')) != -1)
+                    note = ''
+                }
+                if (id_proc == 'tt') {
+                    rap = db.anagrafica.filter(p => p.rapporti.findIndex(r => r.Mese == mesi[indice]) != -1)
+                    let p = db.anagrafica.filter(p => p.rapporti.findIndex(r => r.Mese == mesi[indice] && r.Inc == 'p') != -1).length
+                    let pa = db.anagrafica.filter(p => p.rapporti.findIndex(r => r.Mese == mesi[indice] && r.Inc == 'pa') != -1).length
+                    let pr = db.anagrafica.filter(p => p.rapporti.findIndex(r => r.Mese == mesi[indice] && r.Inc == 'pr') != -1).length
+                    let ps = db.anagrafica.filter(p => p.rapporti.findIndex(r => r.Mese == mesi[indice] && r.Inc == 'ps') != -1).length
+                    let ir = db.anagrafica.filter(p => p.rapporti.findIndex(r => r.Mese == mesi[indice] && r.Inc == 'ir') != -1).length
+                    note = `P:${p} PA:${pa} PR:${pr} PS:${ps} IR:${ir}`
+                }
                 if (id_proc.length > 2) {
                     gruppoStraniero = id_proc.split('-')
                     if (gruppoStraniero[1] == 'ita') {
-                        gruppiStranieri = gruppi.filter(item => item.straniero).map(item => item.id)
-                        rapporti_mese = rapporti.filter(item => (
-                            (item.Mese == mesi[indice]) &&
-                            (item.Inc == gruppoStraniero[0]) &&
-                            (!gruppiStranieri.includes(item.Gr))
-                        ))
+                        gruppiStranieri = db.gruppi.filter(item => item.straniero).map(item => item.id)
+                        rap = db.anagrafica.filter(
+                            p => p.rapporti.findIndex(
+                                r => r.Mese == mesi[indice] && r.Inc == gruppoStraniero[0] && !gruppiStranieri.includes(r.Gr)) != -1
+                        )
                     } else {
-                        rapporti_mese = rapporti.filter(item => (
-                            (item.Mese == mesi[indice]) &&
-                            (item.Inc == gruppoStraniero[0]) &&
-                            (item.Gr == gruppoStraniero[1])
-                        ))
+                        rap = db.anagrafica.filter(
+                            p => p.rapporti.findIndex(
+                                r => r.Mese == mesi[indice] && r.Inc == gruppoStraniero[0] && r.Gr == gruppoStraniero[1]) != -1
+                        )
+                    }
+                    note = ''
+                }
+                if (rap.length > 0) {
+                    rapporto = {
+                        N: rap.length,
+                        Studi: rap.map(p => {
+                            iRap = p.rapporti.findIndex(r => r.Mese == mesi[indice])
+                            return p.rapporti[iRap].Studi ? p.rapporti[iRap].Studi : 0
+                        }).reduce((p, n) => p + n),
+                        Ore: rap.map(p => {
+                            iRap = p.rapporti.findIndex(r => r.Mese == mesi[indice])
+                            return p.rapporti[iRap].Ore ? p.rapporti[iRap].Ore : 0
+                        }).reduce((p, n) => p + n),
+                        Note: note
                     }
                 } else {
-                    if (id_proc == "tt") {
-                        rapporti_mese = rapporti.filter(item => (item.Mese == mesi[indice]))
-                    } else {
-                        rapporti_mese = rapporti.filter(item => (
-                            (item.Mese == mesi[indice]) &&
-                            (item.Inc == id_proc)))
-                    }
-                }
-                rapporto = {}
-                rapporto.N = rapporti_mese.length
-                if (rapporti_mese.length != 0) {
-                    rapporto.Studi = rapporti_mese.map(item => item.Studi).reduce((p, n) => p + n)
-                    switch (id_proc) {
-                        case "pa":
-                        case "pr":
-                            rapporto.Ore = rapporti_mese.map(item => item.Ore).reduce((p, n) => p + n)
-                            break;
-                        case "tt":
-                            rapporto.Ore = rapporti_mese.map(item => item.Inc != "p" ? item.Ore : 0).reduce((p, n) => p + n)
-                            let p = rapporti_mese.filter(item => item.Inc == 'p')
-                            let pa = rapporti_mese.filter(item => item.Inc == 'pa')
-                            let pr = rapporti_mese.filter(item => item.Inc == 'pr')
-                            let ir = rapporti_mese.filter(item => item.Inc == 'ir')
-                            rapporto.Note = `P:${p.length} PA:${pa.length} PR:${pr.length} IR:${ir.length}`
-                            break;
+                    rapporto = {
+                        N: 0,
+                        Studi: 0,
+                        Ore: 0
                     }
                 }
             } else {
-                rapporto = rapporti.filter(item => ((item.Mese == mesi[indice]) && (item.CE_Anag == Number(id_proc))))
-                rapporto = rapporto[0]
+                iRap = proc.rapporti.findIndex(item => item.Mese == mesi[indice])
+                rapporto = proc.rapporti[iRap]
             }
             $(`table tbody tr:eq(${indice}) td:eq(${0})`).html(new Date(mesi[indice]).toLocaleString('it-IT', {
                 year: 'numeric',
                 month: 'long'
             }))
-            console.log(rapporto)
             if (rapporto) {
+                //console.log(rapporto)
                 if (rapporto.hasOwnProperty('Inc')) {
                     $(`table tbody tr:eq(${indice}) td:eq(${1})`).html(rapporto.Inc)
                     $(`table tbody tr:eq(${indice}) td:eq(2)`).html(rapporto.Studi)
@@ -274,7 +252,7 @@ function visualS21() {
                         $(`table tbody tr:eq(${indice}) td:eq(4)`).html(rapporto.Note)
                     }
                 }
-                if ((rapporto.hasOwnProperty('N') && rapporto.N != 0)) {
+                if ((rapporto.hasOwnProperty('N'))) {
                     $(`table tbody tr:eq(${indice}) td:eq(${1})`).html(rapporto.N)
                     $(`table tbody tr:eq(${indice}) td:eq(2)`).html(rapporto.Studi)
                     somma += Number(rapporto.Ore)
@@ -288,51 +266,7 @@ function visualS21() {
 }
 
 async function fpdfSingola() {
-    if (isNaN($('#selectProc').val())) {
-        proc = { id: $('#selectProc').val() }
-        if (proc.id == "p") {
-            proc.Nome = 'Proclamatori congregazione'
-        }
-        if (proc.id == "pa") {
-            proc.Nome = "Pionieri ausiliari congregazione"
-        }
-        if (proc.id == "pr") {
-            proc.Nome = "Pionieri regolari e speciali congregazione"
-        }
-        if (proc.id == "tt") {
-            proc.Nome = "Totali congregazione"
-        }
-        if (proc.id.length > 2) {
-            gruppoStraniero = id_proc.split('-')
-            if (gruppoStraniero[1] == 'ita') {
-                if (gruppoStraniero[0] == 'p') {
-                    proc.Nome = 'Proclamatori italiani'
-                }
-                if (gruppoStraniero[0] == 'pa') {
-                    proc.Nome = 'Pionieri ausiliari italiani'
-                }
-                if (gruppoStraniero[0] == 'pr') {
-                    proc.Nome = 'Pionieri regolari italiani'
-                }
-            } else {
-                if (gruppoStraniero[0] == 'p') {
-                    proc.Nome = 'Proclamatori gruppo ' +
-                        gruppi.find(item => item.id == Number(gruppoStraniero[1])).Sorv_Gr
-                }
-                if (gruppoStraniero[0] == 'pa') {
-                    proc.Nome = 'Pionieri ausiliari gruppo ' +
-                        gruppi.find(item => item.id == Number(gruppoStraniero[1])).Sorv_Gr
-                }
-                if (gruppoStraniero[0] == 'pr') {
-                    proc.Nome = 'Pionieri regolari gruppo ' +
-                        gruppi.find(item => item.id == Number(gruppoStraniero[1])).Sorv_Gr
-                }
-            }
-        }
-    } else {
-        proc = proclamatori.find(item => item.id == Number(id_proc))
-    }
-    result = await window.electronAPI.fpdfS21Singola($('#selectAnno').val(), proc)
+    result = await window.electronAPI.fpdfS21Singola($('#selectAnno').val(), $('#selectProc').val())
     if (result.succ)
         toast(new Date().getTime(), "verde", result.msg)
     else

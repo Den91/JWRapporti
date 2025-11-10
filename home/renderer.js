@@ -1,37 +1,12 @@
-var proclamatori
-var rapporti
-var presenti
+var db
 const oggi = new Date()
-
-$(window).resize(function () {
-    marginBody()
-})
 
 $(document).ready(async function () {
     navbar("home")
+    db = await window.electronAPI.readFile('db')
 
-    proclamatori = await window.electronAPI.readFile('anagrafica')
-    proclamatori.sort(function (a, b) {
-        if (a.Nome.toUpperCase() < b.Nome.toUpperCase())
-            return -1
-        if (a.Nome.toUpperCase() > b.Nome.toUpperCase())
-            return 1
-        return 0
-    })
-
-    rapporti = await window.electronAPI.readFile('rapporti')
-
-    presenti = await window.electronAPI.readFile('presenti')
-    presenti.sort(function (a, b) {
-        if (a.Mese < b.Mese)
-            return -1
-        if (a.Mese > b.Mese)
-            return 1
-        return 0
-    })
-
-    var unAnnoBattezzati = $.grep(proclamatori, function (item) {
-        let d = new Date(item.D_Batt)
+    var unAnnoBattezzati = $.grep(db.anagrafica, function (p) {
+        let d = new Date(p.D_Batt)
         return d.getFullYear() + 1 == oggi.getFullYear() &&
             d.getMonth() == oggi.getMonth()
     })
@@ -65,56 +40,61 @@ function rapportiMancanti() {
     $('#divRapportiMancanti').addClass('d-none')
     $('#divElenco').html(``)
     let mese = new Date()
-    mese.setMonth(oggi.getMonth() - 1);
-    for (proc of proclamatori) {
-        if (proc.Elimina == "0" && proc.Attivo == "1") {
-            m = `${mese.toLocaleString('it-IT', {
-                year: 'numeric'
-            })}-${mese.toLocaleString('it-IT', {
-                month: '2-digit'
-            })}`
-            rapporti_mese = rapporti.filter(i => (i.Mese == m) && (i.CE_Anag == proc.id))
-            if (rapporti_mese.length == 0) {
+    mese.setMonth(oggi.getMonth() - 1)
+    m = `${mese.toLocaleString('it-IT', {
+        year: 'numeric'
+    })}-${mese.toLocaleString('it-IT', {
+        month: '2-digit'
+    })}`
+    for (let i = 0; i < db.anagrafica.length; i++) {
+        if (!db.anagrafica[i].Eliminato && db.anagrafica[i].Attivo) {
+            if (db.anagrafica[i].rapporti.findIndex(r => r.Mese == m ? true : false) == -1) {
                 $('#divRapportiMancanti').removeClass('d-none')
-                $('#divElenco').append(`<div class="col-2 py-1"><i class="bi bi-person-fill"></i> ${proc.Nome}</div>`)
+                $('#divElenco').append(`<div class="col-2 py-1"><i class="bi bi-person-fill"></i> ${db.anagrafica[i].Nome}</div>`)
             }
         }
     }
 }
 
 function grafici() {
+    let mesi = []
     let studi = []
-    let presentiGrafico = []
-    var keysF = ['f1', 'f2', 'f3', 'f4', 'f5',]
+    let presenti = []
+    let nMesi = 18
 
-    mesi = [...new Set(rapporti.map(item => item.Mese))]
-    mesi.sort()
-    mesi.forEach(m => {
-        rapporti_mese = rapporti.filter(item => item.Mese == m)
-        if (rapporti_mese.length > 0) {
-            studi.push(rapporti_mese.map(item => item.Studi).reduce((p, n) => p + n))
+    data = new Date()
+    data.setMonth(data.getMonth() - nMesi)
+    for (m = 0; m < nMesi; m++) {
+        mese = `${data.toLocaleString('it-IT', { year: 'numeric' })}-${data.toLocaleString('it-IT', { month: '2-digit' })}`
+        mesi.push(mese)
+
+        //studi
+        s = 0
+        for (let i = 0; i < db.anagrafica.length; i++) {
+            iRap = db.anagrafica[i].rapporti.findIndex(r => r.Mese == mese)
+            if (iRap != -1) {
+                s += db.anagrafica[i].rapporti[iRap].Studi
+            }
         }
+        studi.push(s)
 
-        /*
-        presenti_mese = presenti.find(item => item.Mese == m)
-        if (presenti_mese) {
-            keysF.forEach(function (key, indice) {
-                if (presenti_mese[key] != null && presenti_mese[key] != "") {
-                    $(`#TablePresenti tbody tr:eq(1) td:eq(${indice + 1})`).html(presenti[index][key])
-                    if (!isNaN(Number(presenti[index][key]))) {
-                        totF += Number(presenti[index][key])
-                        cF++
-                    }
+        //presenti
+        let t = c = 0
+        i = db.presenti.findIndex(presenti => presenti.Mese == mese)
+        if (i != -1) {
+            for (x = 1; x < 6; x++) {
+                if (db.presenti[i]['f' + x] > 0) {
+                    t += Number(db.presenti[i]['f' + x])
+                    c++
                 }
-            })
-            mI = totI / cI
-            mF = totF / cF
-
-
-            presentiGrafico.push(presenti_mese.Presenti)
+            }
         }
-            */
-    })
+        presenti.push(Number((t / c).toFixed(0)) || 0)
+
+        data.setMonth(data.getMonth() + 1)
+    }
+    console.log(studi)
+    console.log(presenti)
     new Chart(
         $('#canvasStudi'),
         {
@@ -126,7 +106,33 @@ function grafici() {
                         label: 'Studi',
                         data: studi,
                         fill: false,
-                        borderColor: 'rgb(255, 205, 97)',
+                        backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                    },
+                ]
+            },
+            options: {
+                scales: {
+                    y: {
+                        suggestedMin: 0
+                    }
+                }
+            }
+        }
+    )
+    new Chart(
+        $('#canvasPresenti'),
+        {
+            type: 'line',
+            data: {
+                labels: mesi,
+                datasets: [
+                    {
+                        label: 'Presenti',
+                        data: presenti,
+                        fill: false,
+                        backgroundColor: 'rgba(255, 206, 86, 0.6)',
+                        borderColor: 'rgba(255, 206, 86, 1)',
                     },
                 ]
             },
