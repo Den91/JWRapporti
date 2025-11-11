@@ -10,6 +10,7 @@ $(document).ready(async function () {
     anni.forEach(function (a, indice) {
         $('[name="selectAnno"]').append(`<option value="${a}">${a}</option>`)
     })
+    //console.log(getAnno())
     $('[name="selectAnno"]').val(getAnno())
 
     db.anagrafica.forEach(function (proclamatore, indice) {

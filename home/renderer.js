@@ -93,8 +93,6 @@ function grafici() {
 
         data.setMonth(data.getMonth() + 1)
     }
-    console.log(studi)
-    console.log(presenti)
     new Chart(
         $('#canvasStudi'),
         {

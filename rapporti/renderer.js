@@ -106,10 +106,12 @@ function modalRapporti() {
         `)
     db.anagrafica.forEach(proc => {
         rapporto = proc.rapporti.find(item => item.Mese == mese)
-        if (proc.Eliminato && rapporto) {
-            $("#DivEliminati").removeClass('d-none').append(htmlRapporto(proc))
+        if (proc.Eliminato) {
+            if (rapporto)
+                $("#DivEliminati").removeClass('d-none').append(htmlRapporto(proc))
         } else {
-            if (proc.Attivo) {
+            console.log(proc.Nome, proc.Eliminato)
+            if (!proc.Attivo) {
                 $("#DivInattivi").removeClass('d-none').append(htmlRapporto(proc))
             } else {
                 if (proc.Gr != '')
@@ -121,6 +123,7 @@ function modalRapporti() {
                 }
             }
         }
+        $(`#Gr-${proc.id}`).val(proc.Gr ? proc.Gr : '')
         if (proc.PR_PS == 'PR' || proc.PR_PS == 'PS') {
             $(`#Ore-${proc.id}`).removeAttr('disabled')
             $(`#Studi-${proc.id}`).removeAttr('disabled')
@@ -183,7 +186,6 @@ function htmlRapporto(proclamatore) {
                     class="form-select"
                     id="Gr-${proclamatore.id}"
                     name="Gr" 
-                    value=""
                     onchange="convalida(this)"
                 >
                     <option value=""></option>
@@ -277,7 +279,6 @@ function htmlRapporto(proclamatore) {
 }
 
 async function salvaRapporti() {
-    console.log('Salva rapporti')
     //forse è da togliere?
     $("[modificato='true']").each(function (indice, riga) {
         var Ore = Number($(riga).find("[name='Ore']").val())
@@ -332,6 +333,7 @@ async function salvaRapporti() {
         }
     })
     //salva totali
+    /*
     tot = {
         mese: mese,
         p: { N: 0, Studi: 0 },
@@ -371,6 +373,7 @@ async function salvaRapporti() {
     } else {
         db.totali[iTot] = tot
     }
+    */
     try {
         result = await window.electronAPI.writeFile('db', db)
     } catch (e) {
